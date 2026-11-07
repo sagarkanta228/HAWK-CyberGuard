@@ -11,6 +11,8 @@ dist/
 
 # Python & PyInstaller
 __pycache__/
+.cache/
+*.metadata
 *.py[cod]
 *$py.class
 *.so
