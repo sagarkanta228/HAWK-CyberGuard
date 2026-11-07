@@ -1,0 +1,211 @@
+# 🚀 Multi Scale Efficient Global Context Vision Transformer
+
+![Task](https://img.shields.io/badge/Task-Deepfake_Detection-red?style=flat-square)
+![Dataset](https://img.shields.io/badge/Dataset-FaceForensics%2B%2B-blue?style=flat-square)
+![Dataset](https://img.shields.io/badge/Dataset-Celeb--DF(v2)-green?style=flat-square)
+![Dataset](https://img.shields.io/badge/Dataset-KODF-yellowgreen?style=flat-square)
+![Model](https://img.shields.io/badge/Model-MS--Eff--GCViT--B0-orange?style=flat-square)
+![Model](https://img.shields.io/badge/Model-MS--Eff--GCViT--B5-orange?style=flat-square)
+![Python Version](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&style=flat-square)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white&style=flat-square)
+
+
+This Repository presents the PyTorch implementation of **Multi Scale Efficient Global Context Vision Transformer**, a hybrid architecture optimized for **deepfake detection task**.
+
+This model is a **frame-level** and **spatial-domain** architecture, designed to perform classification tasks on both **static images** and **video sequences**
+
+
+<img src="../docs/benchmarks/gcvit_params_acc.png" width="900">
+
+## 💥 News 💥
+- [**09.05.2026**] 🔥 Released **HIGH-Eff-GCVIT-B5** (384X384) weights for **Celeb DF(V2)**, **FaceForensics++**, **KoDF**
+- [**09.05.2026**] 🔥 Released **HIGH-Eff-GCVIT-B0** (224X224) weights for **Celeb DF(V2)**, **FaceForensics++**, **KoDF**
+- [**09.04.2026**] 🔥 Released **LOW-Eff-GCVIT-B5** (384X384) weights for **Celeb DF(V2)**, **FaceForensics++**, **KoDF**
+- [**09.04.2026**] 🔥 Released **LOW-Eff-GCVIT-B0** (224X224) weights for **Celeb DF(V2)**, **FaceForensics++**, **KoDF**
+- [**09.03.2026**] 🔥 Released **Eff-B5** (384X384) weights for **Celeb DF(V2)**, **FaceForensics++**, **KoDF**
+- [**09.03.2026**] 🔥 Released **Eff-B0** (224X224) weights for **Celeb DF(V2)**, **FaceForensics++**, **KoDF**
+- [**02.28.2026**] 🔥🔥🔥 Released **MS-Eff-GCViT-B5** (384X384) and **MS-Eff-GCViT-B0** (224X224) weights for **KoDF**
+- [**02.03.2026**] 🔥🔥 Released **MS-Eff-GCViT-B5** (384X384) weights for **Celeb DF(V2)**, **FaceForensics++**
+- [**02.03.2026**] 🔥 Released **MS-Eff-GCViT-B0** (224X224) weights for **Celeb DF(V2)**, **FaceForensics++**
+
+## Model Performance
+
+**MS-EFF-GCViT achieves state-of-the-art (SOTA) results across three DeepFake benchmarks.**
+The model ships in two variants from a single architecture — **Fast (b0)** for real-time / edge
+deployment and **Pro (b5)** for enterprise-grade accuracy.
+
+**📊 Model Performance Results on Celeb-DF (v2) Dataset**
+
+| Model | Test@Acc | Test@Auc | #Params(M) | Params Ratio | #FLOPS(G) | FLOPS Ratio |
+| --- | --- | --- | --- | --- | --- | --- |
+| **ms_eff_gcvit_b0** | 98.4% | 99.7% | 8.7 | 1x | 0.85 | 1x |
+| sia (eccv,2022) | 99.0% | 99.8% | 17.57 | 2x | 2.05 | 2.4x |
+| core (cvpr,2022) | 99.6% | 99.7% | 20.81 | 2.4x | 8.40 | 9.9x |
+| **ms_eff_gcvit_b5** | **99.8%** | 99.8% | 50.34 | 5.8x | 13.43 | 15.8x |
+| iid (cvpr,2023) | **99.8%** | **99.9%** | 65.5 | 7.5x | 12.7 | 14.9x |
+| effort (icml, 2025) | **99.8%** | 99.7% | 303.4 | 34.9x | 155.9 | 183.4x |
+
+
+**📊 Model Performance Results on FaceForensics++ Dataset**
+
+| Model | Test@Acc | Test@Auc | #Params(M) | Params Ratio | #FLOPS(G) | FLOPS Ratio |
+| --- | --- | --- | --- | --- | --- | --- |
+| **ms_eff_gcvit_b0** | 98.1% | 99.7% | 8.7 | 1x | 0.85 | 1x |
+| sia (ECCV,2022) | 95.0% | 97.5% | 17.57 | 2x | 2.05 | 2.4x |
+| core (CVPR,2022) | 98.3% | **99.8%** | 20.81 | 2.4x | 8.40 | 9.9x |
+| **ms_eff_gcvit_b5** | **98.5%** | 99.7% | 50.34 | 5.8x | 13.43 | 15.8x |
+| iid (CVPR,2023) | 97.3% | 99.6% | 65.5 | 7.5x | 12.7 | 14.9x |
+| effort (ICML, 2025) | 98.4% | **99.8%** | 303.4 | 34.9x | 155.9 | 183.4x |
+
+**📊 Model Performance Results on KoDF Dataset**
+
+| Model | Test@Acc | Test@Auc | #Params(M) | Params Ratio | #FLOPS(G) | FLOPS Ratio |
+| --- | --- | --- | --- | --- | --- | --- |
+| **ms_eff_gcvit_b0** | 96.6% | 97.9% | 8.7 | 1x | 0.85 | 1x |
+| sia (ECCV,2022) | 97.0% | 98.8% | 17.57 | 2x | 2.05 | 2.4x |
+| core (CVPR,2022) | 96.3% | 99.2% | 20.81 | 2.4x | 8.40 | 9.9x |
+| **ms_eff_gcvit_b5** | 97.9% | 98.3% | 50.34 | 5.8x | 13.43 | 15.8x |
+| iid (CVPR,2023) | 96.5% | 97.6% | 65.5 | 7.5x | 12.7 | 14.9x |
+| effort (ICML, 2025) | **99.0%** | **99.5%** | 303.4 | 34.9x | 155.9 | 183.4x |
+
+
+## Model Indroduction
+
+Multi Scale Efficient Global Context Vision Transformer is an optimized multi-scale hybrid architecture that integrates CNN-driven spatial inductive bias with hierarchical attention mechanisms to effectively identify subtle(local) artifacts and macro(global) artifacts for robust deepfake forensics."
+
+<img src="../docs/architectures/ms_eff_gcvit.JPG" width="900">
+
+### Part 1: CNN-based Patch Embedding for Spatial Inductive Bias
+
+While traditional Vision Transformers (ViTs) utilize a Linear Projection for patch embedding, our proposed model adopts a CNN-based Patch Embedding module incorporating MBConvBlocks.
+
+- **Injecting Inductive Bias** : Standard ViTs often suffer from a lack of inherent spatial inductive bias, typically necessitating massive datasets to learn fundamental visual structures from scratch. In contrast, our CNN-based module leverages overlapping receptive fields to facilitate information sharing between neighboring patches. By explicitly injecting this spatial bias into the architecture, the model achieves more stable and accelerated convergence during the training process.
+
+
+### Part 2: Long-Short Range Spatial Interaction
+
+We utilizes two distinct types of self-attention to capture both long-range and short-range information across feature maps.
+
+<img src="../docs/architectures/window_attention.JPG" width="900">
+
+- **Local Window Attention**: this model efficiently captures local textures and precise spatial details while maintaining linear computational complexity relative to the image size.
+
+- **Global Window Attention**: Unlike Swin Transformer, this module utilizes global-queries that interact with local window keys and values. This allows each local region to incorporate global context, effectively capturing long-range dependencies and providing a comprehensive understanding of the entire spatial structure
+
+### Part 3: Computational Efficiency
+
+- **Efficient Backbone**
+While both **Xception** and **EfficientNet** show great results on DeepFake benchmarks, **EfficientNet** is chosen for its superior computational efficiency. By utilizing **MBconv (Inverted Residual Blocks)** and depthwise convolutions, it achieves significantly lower FLOPS compared to Xception.
+
+- **Window-based Attention**: Instead of applying self-attention on raw images, this model operates on feature maps extracted from backbone blocks. By partitioning these maps into windows, the $O(N^2)$ complexity is restricted to the window size, siginificantly lowering the computational footprint.
+
+
+### Part 4: Multi-Scale Feature Map Fusion
+
+<img src="../docs/architectures/dual_branch.gif" width="900">  
+
+Modern DeepFakes can leave very localized forgery region. To Capture this, we adopts a **multi-scale strategy** by extracting features from different levels of the backbone.
+
+- **![](https://img.shields.io/badge/Low_level_Branch-blue?style=flat-square) (_Subtle Artifacts_)**: High-Resolution feature maps are extracted from early backbone blocks(`l_block_idx`) to capture like skin texture or boundary artifacts
+
+- **![](https://img.shields.io/badge/High_level_Branch-red?style=flat-square) (_Global Features_)**: Low-Resolution feature maps are extracted from deeper blocks(`h_block_idx`) to analyze overall lighting, shadows, and structural consistency.
+
+- **Feature Fusion**: The Outputs from both branches (`L-GCViT and H-GCViT`) are fused to make a comprehensive decision based on both local and global context.
+
+
+## 📊 Model Zoo
+
+| Model | Resolution | # Params(M) | # FLOPS(G) | Model Config |
+| ----- | ---------- | -------------- | ----------- | ------- | 
+| ⚡ ms_eff_gcvit_b0 | 224 X 224 | 8.70 | 0.85 | [spec](./config/ms_eff_gcvit_b0/celeb_df_v2.yaml) |
+| 🔥 ms_eff_gcvit_b5 | 384 X 384 | 50.34 | 13.43 | [spec](./config/ms_eff_gcvit_b5/celeb_df_v2.yaml) |
+
+
+## 🕐 Model Inference Latency
+
+Latency is measured with batch size 1 on a single Tesla T4 and video (num_frames=20).
+
+| Model | Mode | Target Deployment | Latency (s) | Ratio |
+| ----- | ---- | ----------------- | ----------- | ----- |
+| ⚡ ms_eff_gcvit_b0 | Fast Mode | Edge / on-device deployment | 0.051 | 1.00× |
+| 🔥 ms_eff_gcvit_b5 | Pro Mode | Enterprise deployment | 0.479 | 9.41× |
+
+
+## DeepFake Video Benchmarks
+
+🔥 **Celeb-DF(v2)**: A Large-scale Challenging Dataset for DeepFake Forensics [paper](https://openaccess.thecvf.com/content_CVPR_2020/papers/Li_Celeb-DF_A_Large-Scale_Challenging_Dataset_for_DeepFake_Forensics_CVPR_2020_paper.pdf) [download](https://github.com/yuezunli/celeb-deepfakeforensics/tree/master/Celeb-DF-v2)
+
+🔥 **FaceForensics++**: Learning to Detect Manipulated Facial Images [paper](https://arxiv.org/abs/1901.08971) [download](https://github.com/ondyari/FaceForensics)
+
+🔥 **KoDF**: Large-Scale Korean DeepFake Detection Dataset [paper](https://aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&searchKeyword=%EB%94%A5%ED%8E%98%EC%9D%B4%ED%81%AC%20%EB%B3%80%EC%A1%B0%20%EC%98%81%EC%83%81&aihubDataSe=data&dataSetSn=55) [download](https://aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&searchKeyword=%EB%94%A5%ED%8E%98%EC%9D%B4%ED%81%AC%20%EB%B3%80%EC%A1%B0%20%EC%98%81%EC%83%81&aihubDataSe=data&dataSetSn=55)
+
+**Celeb DF(v2) Pretrained Models**
+
+| Model | Test@Acc | Test@Auc | Test@log_loss | Download | Train Config |
+| ------------- | -------- | -------- | ---------- | -------- | ----- |
+| ms_eff_gcvit_b0 | 0.9842 | 0.9965 | 0.0283 | [model](https://github.com/HanMoonSub/DeepGuard/releases/download/v0.1.0/ms_eff_gcvit_b0_celeb_df_v2.bin) | [recipe](./config/ms_eff_gcvit_b0/celeb_df_v2.yaml) |
+| ms_eff_gcvit_b5 | 0.9981 | 0.9984 | 0.0089 | [model](https://github.com/HanMoonSub/DeepGuard/releases/download/v0.1.0/ms_eff_gcvit_b5_celeb_df_v2.bin) | [recipe](./config/ms_eff_gcvit_b5/celeb_df_v2.yaml) |
+
+**FaceForensics++ Pretrained Models**
+
+| Model | Test@Acc | Test@Auc | Test@log_loss | Download | Train Config |
+| ------------- | -------- | -------- | ---------- | -------- | ------ |
+| ms_eff_gcvit_b0 | 0.9808 | 0.9969 | 0.0637| [model](https://github.com/HanMoonSub/DeepGuard/releases/download/v0.1.0/ms_eff_gcvit_b0_ff++.bin) | [recipe](./config/ms_eff_gcvit_b0/ff++.yaml) |
+| ms_eff_gcvit_b5 | 0.9850 | 0.9974 | 0.0492 | [model](https://github.com/HanMoonSub/DeepGuard/releases/download/v0.1.0/ms_eff_gcvit_b5_ff++.bin) | [recipe](./config/ms_eff_gcvit_b5/ff++.yaml) |
+
+**KoDF Pretrained Models**
+
+| Model | Test@Acc | Test@Auc | Test@log_loss | Download | Train Config |
+| ------------- | -------- | -------- | ---------- | -------- | ------ |
+| ms_eff_gcvit_b0 | 0.9655 | 0.9792 | 0.1237 | [model](https://github.com/HanMoonSub/DeepGuard/releases/download/v0.2.0/ms_eff_gcvit_b0_kodf.bin) | [recipe](./config/ms_eff_gcvit_b0/kodf.yaml) |
+| ms_eff_gcvit_b5 | 0.9792 | 0.9831 | 0.0692 | [model](https://github.com/HanMoonSub/DeepGuard/releases/download/v0.2.0/ms_eff_gcvit_b5_kodf.bin) | [recipe](./config/ms_eff_gcvit_b5/kodf.yaml) |
+
+## Usage
+
+**Quick Start**
+You can load the models directly via the `DeepGuard` package or through the `timm` interface.
+
+**Available Datasets**: `celeb_df_v2`, `ff++`, `kodf`
+
+**Installation**
+
+```bash
+# pip install -U git+https://github.com/HanMoonSub/DeepGuard.git
+pip install deepguard
+```
+
+
+**Option A: Direct Import (via DeepGuard)**
+
+```python
+from deepguard import ms_eff_gcvit_b0, ms_eff_gcvit_b5
+
+model = ms_eff_gcvit_b0(pretrained=True, dataset="celeb_df_v2")
+model = ms_eff_gcvit_b5(pretrained=True, dataset="ff++")
+```
+
+**Option B: Using timm Interface (via timm)**
+
+```python
+import timm
+import deepguard
+
+model = timm.create_model("ms_eff_gcvit_b0", pretrained=True, dataset="ff++")
+model = timm.create_model("ms_eff_gcvit_b5", pretrained=True, dataset="kodf")
+```
+
+## 📊 Visual Results
+
+### MS-EFF-GCVIT — Low-Level Branch
+
+| Model | Branch-Level | Image | HiresCam | GradCamElementwise | LayerCam |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **⚡ ms-eff-gcvit-b0** | ![](https://img.shields.io/badge/Low_level_Branch-blue?style=flat-square) | <img src="../docs/samples/images/western/western_fake_1.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b0_low_hirescam.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b0_low_gradcamelementwise.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b0_low_layercam.JPG" width="100"> |
+| **🔥 ms-eff-gcvit-b5** | ![](https://img.shields.io/badge/Low_level_Branch-blue?style=flat-square) | <img src="../docs/samples/images/western/western_fake_1.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b5_low_hirescam.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b5_low_gradcamelementwise.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b5_low_layercam.JPG" width="100"> |
+
+### MS-Eff-GCViT — High-Level Branch
+
+| Model | Branch-Level | Image | EigenGradCam | GradCamPlusPlus | XGradCam |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **⚡ ms-eff-gcvit-b0** | ![](https://img.shields.io/badge/High_level_Branch-red?style=flat-square) | <img src="../docs/samples/images/western/western_fake_1.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b0_high_eigengradcam.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b0_high_gradcamplusplus.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b0_high_xgradcam.JPG" width="100"> |
+| **🔥 ms-eff-gcvit-b5** | ![](https://img.shields.io/badge/High_level_Branch-red?style=flat-square) | <img src="../docs/samples/images/western/western_fake_1.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b5_high_eigengradcam.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b5_high_gradcamplusplus.JPG" width="100"> | <img src="../docs/xai-results/ms_eff_gcvit_b5_high_xgradcam.JPG" width="100"> |

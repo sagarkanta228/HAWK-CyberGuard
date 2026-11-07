@@ -53,16 +53,20 @@ WSGI_APPLICATION = 'cyberguard_django.wsgi.application'
 
 NEON_DB_URL = os.getenv(
     "NEON_DATABASE_URL",
-    "postgresql://neondb_owner:npg_1Ze9uYGTfDcn@ep-dark-truth-b4xvk6bl-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require"
+    "postgresql://neondb_owner:npg_1Ze9uYGTfDcn@ep-dark-truth-b4xvk6bl.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require"
 )
 
 if NEON_DB_URL:
+    db_config = dj_database_url.config(
+        default=NEON_DB_URL,
+        conn_max_age=600,
+        ssl_require=True
+    )
+    if not db_config.get('PORT'):
+        db_config['PORT'] = '5432'
+    db_config['DISABLE_SERVER_SIDE_CURSORS'] = True
     DATABASES = {
-        'default': dj_database_url.config(
-            default=NEON_DB_URL,
-            conn_max_age=600,
-            ssl_require=True
-        )
+        'default': db_config
     }
 else:
     DATABASES = {

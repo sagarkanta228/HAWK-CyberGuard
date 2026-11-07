@@ -1,93 +1,43 @@
 'use client';
 
 import React, { useState } from 'react';
-import Navbar from '../../frontend/src/components/Navbar';
-import Sidebar from '../../frontend/src/components/Sidebar';
-import LoginPortal from '../../frontend/src/components/LoginPortal';
-import LandingPage from '../../frontend/src/components/LandingPage';
-import UserDashboard from '../../frontend/src/components/UserDashboard';
-import ThreatAnalyzer from '../../frontend/src/components/ThreatAnalyzer';
-import FileManager from '../../frontend/src/components/FileManager';
-import AdminDashboard from '../../frontend/src/components/AdminDashboard';
-import IncidentInvestigationConsole from '../../frontend/src/components/IncidentInvestigationConsole';
-import LiveSecurityMonitor from '../../frontend/src/components/LiveSecurityMonitor';
-import ThreatIntelligenceHub from '../../frontend/src/components/ThreatIntelligenceHub';
-import AISecurityCopilotConsole from '../../frontend/src/components/AISecurityCopilotConsole';
-import AuditLogsView from '../../frontend/src/components/AuditLogsView';
-import HackathonDemoModal from '../../frontend/src/components/HackathonDemoModal';
+import Navbar from '../components/Navbar';
+import Sidebar from '../components/Sidebar';
+import CommandCenter from '../components/CommandCenter';
+import PhishXScanner from '../components/PhishXScanner';
+import MalwareScanner from '../components/MalwareScanner';
+import DeepFakeScanner from '../components/DeepFakeScanner';
+import IncidentConsole from '../components/IncidentConsole';
+import ThreatIntelHub from '../components/ThreatIntelHub';
+import AICopilotConsole from '../components/AICopilotConsole';
+import AuditLogsView from '../components/AuditLogsView';
+import LoginPortal from '../components/LoginPortal';
+import DemoModal from '../components/DemoModal';
 
 export default function Page() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentRole, setCurrentRole] = useState('USER');
-  const [activeView, setActiveView] = useState('login');
-  const [initialScanTab, setInitialScanTab] = useState('email');
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [currentRole, setCurrentRole] = useState('ADMIN');
+  const [activeView, setActiveView] = useState('command-center');
   const [selectedIncidentId, setSelectedIncidentId] = useState('INC-1024');
   const [isDemoOpen, setIsDemoOpen] = useState(false);
 
-  // Sync URL pathname with active view (/login, /admin, /)
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const path = window.location.pathname;
-      if (path === '/login') {
-        setActiveView('login');
-      } else if (path === '/admin') {
-        setIsAuthenticated(true);
-        setCurrentRole('ADMIN');
-        setActiveView('admin-dashboard');
-      }
-    }
-  }, []);
-
-  // Update browser URL state when activeView changes
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (activeView === 'login' && window.location.pathname !== '/login') {
-        window.history.pushState({}, '', '/login');
-      } else if (currentRole === 'ADMIN' && window.location.pathname !== '/admin') {
-        window.history.pushState({}, '', '/admin');
-      } else if (isAuthenticated && activeView !== 'login' && currentRole === 'USER' && window.location.pathname !== '/') {
-        window.history.pushState({}, '', '/');
-      }
-    }
-  }, [activeView, currentRole, isAuthenticated]);
-
   const handleLoginSuccess = (operatorData) => {
     setIsAuthenticated(true);
-    const role = operatorData?.role || 'USER';
-    setCurrentRole(role);
-    if (role === 'ADMIN') {
-      setActiveView('admin-dashboard');
-      if (typeof window !== 'undefined') window.history.pushState({}, '', '/admin');
-    } else {
-      setActiveView('user-dashboard');
-      if (typeof window !== 'undefined') window.history.pushState({}, '', '/');
-    }
+    setCurrentRole(operatorData?.role || 'ADMIN');
+    setActiveView('command-center');
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setActiveView('login');
-    if (typeof window !== 'undefined') window.history.pushState({}, '', '/login');
   };
 
-  const handleSelectScanTab = (tab) => {
-    setInitialScanTab(tab);
-    setActiveView('user-analyze');
-  };
-
-  if (!isAuthenticated || activeView === 'login') {
-    return (
-      <LoginPortal
-        onLoginSuccess={handleLoginSuccess}
-        openNodesModal={() => {}}
-        openArchModal={() => {}}
-        openSecOpsModal={() => {}}
-      />
-    );
+  if (!isAuthenticated) {
+    return <LoginPortal onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (
     <div className="min-h-screen bg-[#080a0f] text-white flex flex-col font-sans">
+      {/* Top Fixed Navbar */}
       <Navbar
         currentRole={currentRole}
         setCurrentRole={setCurrentRole}
@@ -98,56 +48,64 @@ export default function Page() {
       />
 
       <div className="flex flex-1 pt-16">
-        {activeView !== 'landing' && (
-          <Sidebar
-            currentRole={currentRole}
-            activeView={activeView}
-            setActiveView={setActiveView}
-            onLogout={handleLogout}
-          />
-        )}
+        {/* Fixed Left Sidebar */}
+        <Sidebar
+          currentRole={currentRole}
+          activeView={activeView}
+          setActiveView={setActiveView}
+          onLogout={handleLogout}
+        />
 
-        <main className={`flex-1 p-6 lg:p-8 transition-all ${activeView !== 'landing' ? 'ml-64' : 'ml-0'}`}>
-          {activeView === 'landing' && (
-            <LandingPage setActiveView={setActiveView} setCurrentRole={setCurrentRole} />
+        {/* Main Content Area */}
+        <main className="flex-1 p-6 lg:p-8 transition-all ml-64 min-h-[calc(100vh-4rem)]">
+          {activeView === 'command-center' && (
+            <CommandCenter
+              setActiveView={setActiveView}
+              setSelectedIncidentId={setSelectedIncidentId}
+            />
           )}
-          {activeView === 'user-dashboard' && (
-            <UserDashboard setActiveView={setActiveView} onSelectScanTab={handleSelectScanTab} />
+
+          {activeView === 'phishx' && (
+            <PhishXScanner
+              setActiveView={setActiveView}
+            />
           )}
-          {activeView === 'user-analyze' && (
-            <ThreatAnalyzer initialTab={initialScanTab} setActiveView={setActiveView} />
+
+          {activeView === 'ember' && (
+            <MalwareScanner
+              setActiveView={setActiveView}
+            />
           )}
-          {activeView === 'user-files' && (
-            <FileManager isAdmin={false} />
+
+          {activeView === 'deepguard' && (
+            <DeepFakeScanner
+              setActiveView={setActiveView}
+            />
           )}
-          {activeView === 'user-alerts' && (
-            <LiveSecurityMonitor />
+
+          {activeView === 'incidents' && (
+            <IncidentConsole
+              incidentId={selectedIncidentId}
+              setSelectedIncidentId={setSelectedIncidentId}
+            />
           )}
-          {activeView === 'user-incidents' && (
-            <IncidentInvestigationConsole incidentId={selectedIncidentId} />
+
+          {activeView === 'threat-intel' && (
+            <ThreatIntelHub />
           )}
-          {activeView === 'admin-dashboard' && (
-            <AdminDashboard setActiveView={setActiveView} setSelectedIncidentId={setSelectedIncidentId} />
+
+          {activeView === 'copilot' && (
+            <AICopilotConsole />
           )}
-          {activeView === 'admin-live-monitor' && (
-            <LiveSecurityMonitor />
-          )}
-          {activeView === 'admin-incidents' && (
-            <IncidentInvestigationConsole incidentId={selectedIncidentId} />
-          )}
-          {activeView === 'admin-threat-intelligence' && (
-            <ThreatIntelligenceHub />
-          )}
-          {activeView === 'admin-copilot' && (
-            <AISecurityCopilotConsole />
-          )}
-          {activeView === 'admin-audit-logs' && (
+
+          {activeView === 'audit-logs' && (
             <AuditLogsView />
           )}
         </main>
       </div>
 
-      <HackathonDemoModal
+      {/* Interactive Demo Modal */}
+      <DemoModal
         isOpen={isDemoOpen}
         onClose={() => setIsDemoOpen(false)}
         setActiveView={setActiveView}
