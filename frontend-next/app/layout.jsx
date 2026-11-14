@@ -1,14 +1,15 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'HAWK - Multi-Vector AI Threat Defense Platform',
-  description: 'HAWK Autonomous Multi-Vector AI Threat Defense Platform: PhishX (LightGBM + CharCNN), EMBER2024 (14 Benchmark Malware Classifiers), and DeepGuard (MS-EffGCViT Synthetic Media Forensics).',
+  title: 'HAWK — Secure Everything You Click, Open & Trust',
+  description:
+    'HAWK brings PhishX, EMBER2024, and DeepGuard AI threat detection into one real-time command center.',
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-[#080a0f] text-white selection:bg-cyan-500 selection:text-black">
+      <body className="bg-[#f5f7fc] text-[#0f172a] selection:bg-[#2454ff]/15 selection:text-[#2454ff] antialiased">
         {children}
       </body>
     </html>

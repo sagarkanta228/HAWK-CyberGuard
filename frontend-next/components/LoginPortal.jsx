@@ -1,192 +1,531 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
-  Shield,
+  Cpu,
+  Eye,
+  EyeOff,
   Lock,
-  ArrowRight,
-  User,
-  KeyRound,
-  Server,
-  Zap,
-  CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  ScanFace,
+  Shield,
 } from 'lucide-react';
+import { HawkGeometricMark } from './HawkMark';
+import GlobeHandIllustration from './GlobeHandIllustration';
+import { EASE_OUT_EXPO } from './motion/MotionPrimitives';
 
 export default function LoginPortal({
+  mode = 'login',
   onLoginSuccess,
-  backendUrl = 'http://127.0.0.1:8000'
+  backendUrl = 'http://127.0.0.1:8000',
 }) {
-  const [email, setEmail] = useState('admin@hawk.internal');
-  const [password, setPassword] = useState('••••••••••••');
+  const isSignup = mode === 'signup';
+  const [roleTab, setRoleTab] = useState('SOC');
+  const [fullName, setFullName] = useState('');
+  const [organization, setOrganization] = useState('');
+  const [email, setEmail] = useState('analyst@company.com');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [keepSignedIn, setKeepSignedIn] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const presets = [
-    { label: 'SecOps Administrator', email: 'admin@hawk.internal', role: 'ADMIN', name: 'Sarah Jenkins' },
-    { label: 'SOC Threat Analyst', email: 'soc@hawk.internal', role: 'SOC_ANALYST', name: 'David Miller' },
-    { label: 'Enterprise Operator', email: 'user@company.com', role: 'USER', name: 'Robert Vance' }
-  ];
+  const roleMap = {
+    User: 'USER',
+    SOC: 'SOC_ANALYST',
+    'SOC analyst': 'SOC_ANALYST',
+    Admin: 'ADMIN',
+  };
 
-  const handleLogin = async (loginEmail = email) => {
+  const getPasswordStrength = (pw) => {
+    if (!pw) return { bars: 0, label: 'not set', color: 'bg-[#e2e8f0]' };
+    let score = 0;
+    if (pw.length >= 6) score++;
+    if (pw.length >= 10) score++;
+    if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+    if (/\d/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    if (score <= 2) return { bars: Math.max(1, score), label: 'weak', color: 'bg-rose-500' };
+    if (score <= 3) return { bars: 3, label: 'fair', color: 'bg-amber-500' };
+    if (score === 4) return { bars: 4, label: 'good', color: 'bg-[#2454ff]' };
+    return { bars: 5, label: 'strong', color: 'bg-emerald-500' };
+  };
+
+  const strength = getPasswordStrength(password);
+
+  const handleSubmit = async (overrideEmail = null) => {
+    setErrorMsg('');
+    const targetEmail = (overrideEmail ?? email).trim() || 'analyst@company.com';
+    if (isSignup && !agreeTerms) {
+      setErrorMsg('Please agree to the Terms and Privacy Policy.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch(`${backendUrl}/api/v1/auth/login`, {
+      const endpoint = isSignup ? '/api/v1/auth/register' : '/api/v1/auth/login';
+      const mappedRole = roleMap[roleTab] || 'SOC_ANALYST';
+      const payload = isSignup
+        ? {
+            fullName: fullName.trim() || 'Aarav Sharma',
+            organization: organization.trim() || 'HAWK Enterprise',
+            email: targetEmail,
+            role: mappedRole,
+            password,
+          }
+        : {
+            email: targetEmail,
+            role: mappedRole,
+            password,
+          };
+
+      const res = await fetch(`${backendUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail })
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
+
       if (data && data.user) {
         onLoginSuccess(data.user);
       } else {
         onLoginSuccess({
-          email: loginEmail,
-          role: loginEmail.includes('admin') ? 'ADMIN' : (loginEmail.includes('soc') ? 'SOC_ANALYST' : 'USER'),
-          fullName: 'Security Operator',
-          department: 'SecOps'
+          email: targetEmail,
+          role: mappedRole,
+          fullName: fullName.trim() || 'Security Analyst',
+          department: organization.trim() || 'SecOps',
         });
       }
-    } catch (err) {
+    } catch {
       onLoginSuccess({
-        email: loginEmail,
-        role: loginEmail.includes('admin') ? 'ADMIN' : (loginEmail.includes('soc') ? 'SOC_ANALYST' : 'USER'),
-        fullName: 'Sarah Jenkins',
-        department: 'SecOps Lead'
+        email: targetEmail,
+        role: roleMap[roleTab] || 'SOC_ANALYST',
+        fullName: fullName.trim() || 'Sarah Jenkins',
+        department: organization.trim() || 'SecOps Lead',
       });
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[#080a0f] text-white flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      {/* Background radial gradients */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+  if (isSignup) {
+    // Page 4: Split Signup (Left #eef1fc Feature Showcase, Right White Form)
+    return (
+      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white text-[#0f172a]">
+        {/* Left Feature Showcase Panel */}
+        <div className="bg-[#eef1fc] px-8 sm:px-14 lg:px-16 py-10 flex flex-col justify-between">
+          <Link href="/main-dashboard" className="inline-flex items-center gap-2.5 w-fit">
+            <HawkGeometricMark className="w-8 h-8" />
+            <span className="font-display font-bold text-base tracking-tight text-[#0f172a]">
+              HAWK
+            </span>
+          </Link>
 
-      <div className="w-full max-w-md space-y-6 z-10 animate-fadeIn">
-        {/* Brand Card Header */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 p-[1px] shadow-xl shadow-cyan-500/20">
-            <div className="w-full h-full bg-[#0b0e14] rounded-2xl flex items-center justify-center">
-              <Shield className="w-7 h-7 text-cyan-400" />
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
+            className="my-auto py-12 max-w-md space-y-8"
+          >
+            <h1 className="font-display text-4xl font-extrabold leading-[1.1] text-[#0f172a]">
+              Start securing everything you trust.
+            </h1>
+
+            <div className="space-y-3.5">
+              <div className="p-4 rounded-2xl bg-white border border-[#e5e9f2] shadow-sm flex items-start gap-3.5">
+                <div className="w-9 h-9 rounded-xl bg-[#eef2ff] text-[#2454ff] flex items-center justify-center shrink-0">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#0f172a]">
+                    PhishX Shield
+                  </div>
+                  <div className="text-xs text-[#64748b] mt-0.5">
+                    Score any URL with a calibrated phishing probability.
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-[#e5e9f2] shadow-sm flex items-start gap-3.5">
+                <div className="w-9 h-9 rounded-xl bg-[#f3e8ff] text-[#7c3aed] flex items-center justify-center shrink-0">
+                  <Cpu className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#0f172a]">
+                    EMBER2024 Sandbox
+                  </div>
+                  <div className="text-xs text-[#64748b] mt-0.5">
+                    Static malware analysis for Windows executables.
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-[#e5e9f2] shadow-sm flex items-start gap-3.5">
+                <div className="w-9 h-9 rounded-xl bg-[#ecfdf5] text-[#059669] flex items-center justify-center shrink-0">
+                  <ScanFace className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-[#0f172a]">
+                    DeepGuard Vision
+                  </div>
+                  <div className="text-xs text-[#64748b] mt-0.5">
+                    Detect synthetic faces, video and cloned voices.
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-wider text-white">HAWK DEFENSE</h1>
-            <p className="text-xs text-gray-400 font-mono mt-0.5">
-              Zero-Trust Autonomous Security Gateway
-            </p>
+          </motion.div>
+
+          <div className="text-xs text-[#64748b]">
+            HAWK Defense Platform • Neon PostgreSQL
           </div>
         </div>
 
-        {/* Login Box */}
-        <div className="p-8 rounded-3xl bg-[#0f141e] border border-[#1e2638] shadow-2xl space-y-5">
-          <div className="flex items-center justify-between text-xs font-mono pb-3 border-b border-[#1e2638]">
-            <span className="text-gray-400 flex items-center space-x-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Post-Quantum TLS Key Exchange</span>
-            </span>
-            <span className="text-emerald-400 font-bold">READY</span>
+        {/* Right Signup Form Panel */}
+        <div className="bg-white px-8 sm:px-14 lg:px-20 py-10 flex items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
+            className="w-full max-w-md space-y-5"
+          >
+            <div>
+              <h2 className="font-display text-3xl font-extrabold text-[#0f172a]">
+                Create your account
+              </h2>
+              <p className="text-sm text-[#64748b] mt-1">
+                Free to set up. No credit card needed.
+              </p>
+            </div>
+
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-[#fef2f2] border border-[#fecaca] text-[#dc2626] text-xs font-medium">
+                {errorMsg}
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSubmit();
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-[#0f172a] mb-1.5">
+                  Full name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Aarav Sharma"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#dce2ee] focus:border-[#2454ff] text-sm text-[#0f172a] placeholder-[#94a3b8] focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#0f172a] mb-1.5">
+                  Organization
+                </label>
+                <input
+                  type="text"
+                  value={organization}
+                  onChange={(e) => setOrganization(e.target.value)}
+                  placeholder="Company or team"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#dce2ee] focus:border-[#2454ff] text-sm text-[#0f172a] placeholder-[#94a3b8] focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#0f172a] mb-1.5">
+                  Work email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="analyst@company.com"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#dce2ee] focus:border-[#2454ff] text-sm text-[#0f172a] placeholder-[#94a3b8] focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#0f172a] mb-1.5">
+                  Your role
+                </label>
+                <div className="grid grid-cols-3 p-1 rounded-full bg-[#f1f4fb] text-xs font-medium">
+                  {['User', 'SOC analyst', 'Admin'].map((tab) => {
+                    const active = roleTab === tab || (roleTab === 'SOC' && tab === 'SOC analyst');
+                    return (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setRoleTab(tab)}
+                        className={`py-2 rounded-full transition-all ${
+                          active
+                            ? 'bg-white text-[#0f172a] shadow-sm font-semibold'
+                            : 'text-[#64748b] hover:text-[#0f172a]'
+                        }`}
+                      >
+                        {tab}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#0f172a] mb-1.5">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 12 characters"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#dce2ee] focus:border-[#2454ff] text-sm text-[#0f172a] placeholder-[#94a3b8] focus:outline-none transition-colors"
+                />
+                <div className="grid grid-cols-5 gap-1.5 mt-2">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={i}
+                      className={`h-1 rounded-full transition-colors ${
+                        i <= strength.bars ? strength.color : 'bg-[#e2e8f0]'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="text-[11px] text-[#64748b] mt-1">
+                  Password strength: <span className="font-medium">{strength.label}</span>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-xs text-[#475569] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  className="rounded border-[#cbd5e1] text-[#2454ff] focus:ring-[#2454ff]"
+                />
+                <span>
+                  I agree to the{' '}
+                  <span className="text-[#2454ff] font-medium">Terms</span> and{' '}
+                  <span className="text-[#2454ff] font-medium">Privacy Policy</span>.
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl bg-[#2454ff] hover:bg-[#1a44e5] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm transition-colors disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Creating account...</span>
+                  </>
+                ) : (
+                  <span>Create account</span>
+                )}
+              </button>
+            </form>
+
+            <div className="text-center text-xs text-[#64748b] pt-1">
+              Already have an account?{' '}
+              <Link href="/login" className="text-[#2454ff] font-semibold hover:underline">
+                Sign in
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Page 3: Split Login (Left White Form, Right #eef1fc Globe & Hand Panel)
+  return (
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white text-[#0f172a]">
+      {/* Left White Form Panel */}
+      <div className="px-8 sm:px-14 lg:px-20 py-10 flex flex-col justify-between">
+        <Link href="/main-dashboard" className="inline-flex items-center gap-2.5 w-fit">
+          <HawkGeometricMark className="w-8 h-8" />
+          <span className="font-display font-bold text-base tracking-tight text-[#0f172a]">
+            HAWK
+          </span>
+        </Link>
+
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: EASE_OUT_EXPO }}
+          className="w-full max-w-md mx-auto my-auto py-8 space-y-6"
+        >
+          <div>
+            <h1 className="font-display text-3xl font-extrabold text-[#0f172a]">
+              Welcome back
+            </h1>
+            <p className="text-sm text-[#64748b] mt-1">
+              Sign in to your command center.
+            </p>
+          </div>
+
+          {/* Role Pill Segmented Switcher */}
+          <div className="grid grid-cols-3 p-1 rounded-full bg-[#f1f4fb] text-xs font-medium">
+            {['User', 'SOC', 'Admin'].map((tab) => {
+              const active = roleTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    setRoleTab(tab);
+                    if (tab === 'Admin') setEmail('admin@hawk.internal');
+                    else if (tab === 'SOC') setEmail('soc@hawk.internal');
+                    else setEmail('user@company.com');
+                  }}
+                  className={`py-2 rounded-full transition-all ${
+                    active
+                      ? 'bg-white text-[#0f172a] shadow-sm font-semibold'
+                      : 'text-[#64748b] hover:text-[#0f172a]'
+                  }`}
+                >
+                  {tab}
+                </button>
+              );
+            })}
           </div>
 
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleLogin();
+              handleSubmit();
             }}
             className="space-y-4"
           >
             <div>
-              <label className="block text-xs font-mono uppercase text-gray-400 mb-1">
-                Operator Identity
+              <label className="block text-xs font-semibold text-[#0f172a] mb-1.5">
+                Work email
               </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#080a0f] border border-[#1e2638] focus:border-cyan-500 text-white text-xs font-mono placeholder-gray-600 focus:outline-none"
-                  placeholder="analyst@hawk.internal"
-                />
-              </div>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="analyst@company.com"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#dce2ee] focus:border-[#2454ff] text-sm text-[#0f172a] placeholder-[#94a3b8] focus:outline-none transition-colors"
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-mono uppercase text-gray-400 mb-1">
-                Passkey / Security Token
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-[#0f172a]">
+                  Password
+                </label>
+                <span className="text-xs text-[#2454ff] font-medium cursor-pointer hover:underline">
+                  Forgot password?
+                </span>
+              </div>
               <div className="relative">
-                <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#080a0f] border border-[#1e2638] focus:border-cyan-500 text-white text-xs font-mono placeholder-gray-600 focus:outline-none"
-                  placeholder="••••••••••••"
+                  placeholder="Enter your password"
+                  className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-white border border-[#dce2ee] focus:border-[#2454ff] text-sm text-[#0f172a] placeholder-[#94a3b8] focus:outline-none transition-colors"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748b] hover:text-[#0f172a]"
+                  aria-label="Toggle password visibility"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
             </div>
+
+            <label className="flex items-center gap-2 text-xs text-[#475569] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={keepSignedIn}
+                onChange={(e) => setKeepSignedIn(e.target.checked)}
+                className="rounded border-[#cbd5e1] text-[#2454ff] focus:ring-[#2454ff]"
+              />
+              <span>Keep me signed in on this device</span>
+            </label>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold text-xs font-mono flex items-center justify-center space-x-2 shadow-lg shadow-cyan-600/20 transition-all"
+              className="w-full py-3 rounded-xl bg-[#2454ff] hover:bg-[#1a44e5] text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm transition-colors disabled:opacity-50"
             >
               {loading ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Verifying Session Signature...</span>
+                  <span>Signing in...</span>
                 </>
               ) : (
-                <>
-                  <span>Authenticate Session</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
+                <span>Sign in</span>
               )}
+            </button>
+
+            <div className="relative flex items-center justify-center py-1">
+              <div className="border-t border-[#e5e9f2] w-full" />
+              <span className="bg-white px-3 text-[11px] text-[#94a3b8]">or</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleSubmit('admin@hawk.internal')}
+              className="w-full py-2.5 rounded-xl bg-white hover:bg-[#f8fafc] border border-[#dce2ee] text-[#0f172a] text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+            >
+              <Lock className="w-4 h-4 text-[#475569]" />
+              <span>Continue with company SSO</span>
             </button>
           </form>
 
-          {/* Quick preset credentials */}
-          <div className="pt-4 border-t border-[#1e2638] space-y-2">
-            <span className="text-[10px] font-mono text-gray-500 uppercase block">
-              Quick Role Presets:
-            </span>
-            <div className="grid grid-cols-1 gap-2">
-              {presets.map((p, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    setEmail(p.email);
-                    handleLogin(p.email);
-                  }}
-                  className="w-full p-2.5 rounded-xl bg-[#080a0f] hover:bg-[#141b2b] border border-[#1e2638] hover:border-cyan-500/40 text-left transition-all flex items-center justify-between group"
-                >
-                  <div>
-                    <div className="text-xs font-bold text-gray-200 group-hover:text-cyan-400">
-                      {p.label}
-                    </div>
-                    <div className="text-[10px] text-gray-500 font-mono">
-                      {p.name} ({p.email})
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1e2638] text-gray-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-300">
-                    {p.role}
-                  </span>
-                </button>
-              ))}
-            </div>
+          <div className="text-center text-xs text-[#64748b]">
+            New to HAWK?{' '}
+            <Link href="/signup" className="text-[#2454ff] font-semibold hover:underline">
+              Create an account
+            </Link>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Footer info */}
-        <div className="text-center text-[11px] text-gray-500 font-mono flex items-center justify-center space-x-2">
-          <Server className="w-3.5 h-3.5 text-cyan-500" />
-          <span>NeonDB PostgreSQL Integrated • 3 AI Vector Engines</span>
+        <div className="text-xs text-[#94a3b8]">
+          Zero-Trust SecOps Gateway • HAWK
+        </div>
+      </div>
+
+      {/* Right Showcase Panel matching Page 3 */}
+      <div className="hidden lg:flex flex-col items-center justify-center bg-[#eef1fc] p-12 text-center">
+        <GlobeHandIllustration compact />
+        <h2 className="font-display text-2xl font-extrabold text-[#0f172a] max-w-xs leading-snug mt-4">
+          Phishing, malware and deepfakes. One place.
+        </h2>
+        <div className="flex items-center gap-2.5 mt-5">
+          <span className="px-3 py-1 rounded-full bg-white text-[#2454ff] text-xs font-semibold shadow-sm border border-[#e5e9f2]">
+            PhishX
+          </span>
+          <span className="px-3 py-1 rounded-full bg-white text-[#7c3aed] text-xs font-semibold shadow-sm border border-[#e5e9f2]">
+            EMBER2024
+          </span>
+          <span className="px-3 py-1 rounded-full bg-white text-[#059669] text-xs font-semibold shadow-sm border border-[#e5e9f2]">
+            DeepGuard
+          </span>
         </div>
       </div>
     </div>
   );
 }
-

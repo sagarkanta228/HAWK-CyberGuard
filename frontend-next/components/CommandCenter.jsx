@@ -1,407 +1,590 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
-  Shield,
-  ShieldAlert,
-  Fish,
-  FileCode,
-  ScanFace,
-  Activity,
   ArrowRight,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle,
-  ExternalLink,
-  Flame,
-  Radio,
-  Clock
+  Cpu,
+  FileCode,
+  Fish,
+  ScanFace,
+  Shield,
 } from 'lucide-react';
+import { SpotlightCard } from './motion/MotionPrimitives';
+
+const CHART_SERIES = {
+  '24h': {
+    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+    phishx: [24, 28, 42, 39, 44, 52, 58],
+    ember: [14, 15, 22, 23, 21, 25, 26],
+    deepguard: [6, 7, 10, 9, 12, 11, 13],
+  },
+  '7d': {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    phishx: [140, 165, 198, 174, 212, 189, 234],
+    ember: [78, 92, 105, 88, 114, 96, 119],
+    deepguard: [29, 34, 41, 38, 49, 44, 53],
+  },
+  '30d': {
+    labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'Now'],
+    phishx: [520, 610, 580, 690, 740, 710, 815],
+    ember: [310, 345, 330, 390, 412, 395, 433],
+    deepguard: [110, 128, 145, 162, 179, 195, 210],
+  },
+};
+
+function MiniSparkline({ points, color }) {
+  const max = Math.max(...points);
+  const min = Math.min(...points);
+  const span = max - min || 1;
+  const coords = points
+    .map((v, i) => {
+      const x = (i / (points.length - 1)) * 180;
+      const y = 26 - ((v - min) / span) * 20;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  return (
+    <svg viewBox="0 0 180 30" className="w-full h-7 mt-3 overflow-visible">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={coords}
+      />
+    </svg>
+  );
+}
 
 export default function CommandCenter({
-  setActiveView,
-  setSelectedIncidentId,
-  backendUrl = 'http://127.0.0.1:8000'
+  backendUrl = 'http://127.0.0.1:8000',
+  embedded = false,
 }) {
+  const [range, setRange] = useState('24h');
   const [stats, setStats] = useState({
     totalScans: 14285,
     threatsPrevented: 1248,
     criticalIncidents: 2,
-    activeIncidents: 3,
-    activeIOCs: 6,
-    systemHealth: 99.98
+    activeIncidents: 2,
+    systemHealth: 99.98,
   });
 
-  const [liveEvents, setLiveEvents] = useState([
-    { id: 'ev-1', time: '12:14:02', vector: 'PHISHING', target: 'sovereign-vault-login.internal', status: 'BLOCKED', risk: 92, severity: 'CRITICAL' },
-    { id: 'ev-2', time: '12:12:45', vector: 'MALWARE', target: 'invoice_2026.pdf.exe', status: 'QUARANTINED', risk: 86, severity: 'HIGH' },
-    { id: 'ev-3', time: '12:08:19', vector: 'DEEPFAKE', target: 'ceo_urgent_memo.mp4', status: 'INTERCEPTED', risk: 91, severity: 'CRITICAL' },
-    { id: 'ev-4', time: '12:05:30', vector: 'PHISHING', target: 'paypal-security-account.top', status: 'BLOCKED', risk: 98, severity: 'CRITICAL' },
-    { id: 'ev-5', time: '12:01:12', vector: 'MALWARE', target: 'system_patch_v2.bin', status: 'CLEAN', risk: 8, severity: 'SAFE' }
+  const [incidents, setIncidents] = useState([
+    {
+      id: 'INC-2041',
+      threatType: 'PhishX',
+      severity: 'Critical',
+      title: 'Credential-harvest page imitating a payroll portal',
+      ago: '4 min ago',
+    },
+    {
+      id: 'INC-2040',
+      threatType: 'EMBER2024',
+      severity: 'Critical',
+      title: 'Packed PE dropper flagged by 11 of 14 classifiers',
+      ago: '12 min ago',
+    },
+    {
+      id: 'INC-2038',
+      threatType: 'DeepGuard',
+      severity: 'High',
+      title: 'Synthetic voice detected in a finance call recording',
+      ago: '41 min ago',
+    },
+  ]);
+
+  const [detections] = useState([
+    {
+      time: '00:52',
+      engine: 'PhishX',
+      artifact: 'secure-login.account-verify.co/session',
+      verdict: 'Phishing',
+      conf: '97.2%',
+    },
+    {
+      time: '00:45',
+      engine: 'EMBER2024',
+      artifact: 'invoice_Q3_final.exe',
+      verdict: 'Malicious',
+      conf: '94.8%',
+    },
+    {
+      time: '00:31',
+      engine: 'DeepGuard',
+      artifact: 'call_recording_0412.wav',
+      verdict: 'Synthetic voice',
+      conf: '91.5%',
+    },
+    {
+      time: '00:18',
+      engine: 'PhishX',
+      artifact: 'docs-share.cloudfiles-login.net',
+      verdict: 'Phishing',
+      conf: '88.3%',
+    },
+    {
+      time: '00:07',
+      engine: 'EMBER2024',
+      artifact: 'update_helper.dll',
+      verdict: 'Benign',
+      conf: '96.1%',
+    },
   ]);
 
   useEffect(() => {
-    // Fetch live stats from Django
     fetch(`${backendUrl}/api/v1/stats`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.totalScans) setStats(data);
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.totalScans) {
+          setStats((prev) => ({ ...prev, ...data }));
+        }
       })
       .catch(() => {});
 
-    // Fetch live telemetry stream
-    fetch(`${backendUrl}/api/v1/live-monitor/stream`)
-      .then(res => res.json())
-      .then(data => {
+    fetch(`${backendUrl}/api/v1/incidents`)
+      .then((res) => res.json())
+      .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          setLiveEvents(prev => [
-            ...data.map(d => ({
-              id: d.id,
-              time: d.timestamp,
-              vector: d.eventType,
-              target: d.detail,
-              status: 'FLAGGED',
-              risk: 88,
-              severity: d.severity
-            })),
-            ...prev
-          ].slice(0, 8));
+          setIncidents(
+            data.slice(0, 3).map((inc, idx) => ({
+              id: inc.id,
+              threatType:
+                inc.threatType === 'PHISHING'
+                  ? 'PhishX'
+                  : inc.threatType === 'MALWARE'
+                  ? 'EMBER2024'
+                  : 'DeepGuard',
+              severity:
+                inc.severity === 'CRITICAL'
+                  ? 'Critical'
+                  : inc.severity === 'HIGH'
+                  ? 'High'
+                  : 'Medium',
+              title: inc.title,
+              ago: idx === 0 ? '4 min ago' : idx === 1 ? '12 min ago' : '41 min ago',
+            }))
+          );
         }
       })
       .catch(() => {});
   }, [backendUrl]);
 
+  const series = CHART_SERIES[range];
+  const maxVal = Math.max(...series.phishx) * 1.15;
+
+  const buildPolyline = (values) =>
+    values
+      .map((v, i) => {
+        const x = 16 + (i / (values.length - 1)) * 468;
+        const y = 175 - (v / maxVal) * 145;
+        return `${x},${y}`;
+      })
+      .join(' ');
+
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Top Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-[#0f141e] border border-cyan-500/20 p-6 lg:p-8">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono">
-              <Radio className="w-3.5 h-3.5 animate-pulse text-cyan-400" />
-              <span>HAWK Autonomous Defense Grid • All Sectors Nominal</span>
-            </div>
-            <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
-              SecOps Threat Command & AI Orchestration
-            </h1>
-            <p className="text-gray-400 text-sm max-w-2xl">
-              Real-time multi-vector threat prevention powered by <span className="text-cyan-400 font-semibold">PhishX</span>, <span className="text-amber-400 font-semibold">EMBER2024</span>, and <span className="text-purple-400 font-semibold">DeepGuard</span> on Neon PostgreSQL.
-            </p>
+    <div
+      className={`space-y-8 ${
+        embedded ? '' : 'max-w-[1220px] mx-auto py-8 px-4 sm:px-6'
+      }`}
+    >
+      {/* Row 1: 4 KPI Sparkline Cards matching Page 2 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <SpotlightCard className="p-5">
+          <div className="text-xs font-medium text-[#64748b]">
+            Threats neutralized
           </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => setActiveView('phishx')}
-              className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center space-x-2 shadow-lg shadow-cyan-600/20 transition-all"
-            >
-              <Fish className="w-4 h-4" />
-              <span>Scan Phishing</span>
-            </button>
-            <button
-              onClick={() => setActiveView('ember')}
-              className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center space-x-2 shadow-lg shadow-amber-600/20 transition-all"
-            >
-              <FileCode className="w-4 h-4" />
-              <span>Inspect Malware</span>
-            </button>
-            <button
-              onClick={() => setActiveView('deepguard')}
-              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center space-x-2 shadow-lg shadow-purple-600/20 transition-all"
-            >
-              <ScanFace className="w-4 h-4" />
-              <span>Detect DeepFake</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Ambient glow */}
-        <div className="absolute -right-20 -top-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      </div>
-
-      {/* KPI Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-[#0f141e] border border-[#1e2638] relative overflow-hidden">
-          <div className="text-xs font-mono uppercase text-gray-400 flex items-center justify-between">
-            <span>Threats Neutralized</span>
-            <Shield className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="text-2xl lg:text-3xl font-extrabold text-white mt-2 font-mono">
+          <div className="font-display text-3xl font-bold text-[#0f172a] mt-1.5">
             {stats.threatsPrevented.toLocaleString()}
           </div>
-          <div className="text-[11px] text-emerald-400 font-mono mt-1 flex items-center space-x-1">
-            <TrendingUp className="w-3 h-3" />
-            <span>99.4% Automated Interception</span>
+          <MiniSparkline points={[12, 16, 15, 22, 24, 29, 34]} color="#2454ff" />
+          <div className="text-[11px] font-medium text-[#2454ff] mt-2">
+            99.4% automated interception
           </div>
-        </div>
+        </SpotlightCard>
 
-        <div className="p-5 rounded-2xl bg-[#0f141e] border border-[#1e2638] relative overflow-hidden">
-          <div className="text-xs font-mono uppercase text-gray-400 flex items-center justify-between">
-            <span>Active Incidents</span>
-            <ShieldAlert className="w-4 h-4 text-rose-400" />
+        <SpotlightCard className="p-5">
+          <div className="text-xs font-medium text-[#64748b]">
+            Active incidents
           </div>
-          <div className="text-2xl lg:text-3xl font-extrabold text-white mt-2 font-mono">
+          <div className="font-display text-3xl font-bold text-[#0f172a] mt-1.5">
             {stats.activeIncidents}
           </div>
-          <div className="text-[11px] text-rose-400 font-mono mt-1 flex items-center space-x-1">
-            <Flame className="w-3 h-3" />
-            <span>2 Critical Priority Active</span>
+          <MiniSparkline points={[22, 20, 21, 18, 17, 15, 16]} color="#dc2626" />
+          <div className="text-[11px] font-medium text-[#dc2626] mt-2">
+            {stats.criticalIncidents} critical priority active
           </div>
-        </div>
+        </SpotlightCard>
 
-        <div className="p-5 rounded-2xl bg-[#0f141e] border border-[#1e2638] relative overflow-hidden">
-          <div className="text-xs font-mono uppercase text-gray-400 flex items-center justify-between">
-            <span>Total AI Inferences</span>
-            <Activity className="w-4 h-4 text-cyan-400" />
+        <SpotlightCard className="p-5">
+          <div className="text-xs font-medium text-[#64748b]">
+            Total AI inferences
           </div>
-          <div className="text-2xl lg:text-3xl font-extrabold text-white mt-2 font-mono">
+          <div className="font-display text-3xl font-bold text-[#0f172a] mt-1.5">
             {stats.totalScans.toLocaleString()}
           </div>
-          <div className="text-[11px] text-cyan-400 font-mono mt-1 flex items-center space-x-1">
-            <Clock className="w-3 h-3" />
-            <span>Avg Latency: 18ms</span>
+          <MiniSparkline points={[10, 14, 13, 19, 24, 28, 36]} color="#7c3aed" />
+          <div className="text-[11px] font-medium text-[#7c3aed] mt-2">
+            Avg latency 18 ms
           </div>
-        </div>
+        </SpotlightCard>
 
-        <div className="p-5 rounded-2xl bg-[#0f141e] border border-[#1e2638] relative overflow-hidden">
-          <div className="text-xs font-mono uppercase text-gray-400 flex items-center justify-between">
-            <span>Grid Reliability</span>
-            <CheckCircle className="w-4 h-4 text-blue-400" />
+        <SpotlightCard className="p-5">
+          <div className="text-xs font-medium text-[#64748b]">
+            Grid reliability
           </div>
-          <div className="text-2xl lg:text-3xl font-extrabold text-white mt-2 font-mono">
+          <div className="font-display text-3xl font-bold text-[#0f172a] mt-1.5">
             {stats.systemHealth}%
           </div>
-          <div className="text-[11px] text-blue-400 font-mono mt-1 flex items-center space-x-1">
-            <span>Neon DB HA Cluster</span>
+          <MiniSparkline points={[24, 24, 25, 24, 25, 25, 25]} color="#16a34a" />
+          <div className="text-[11px] font-medium text-[#15803d] mt-2">
+            Neon DB HA cluster
           </div>
-        </div>
+        </SpotlightCard>
       </div>
 
-      {/* 3 Core Vector Deep Dive Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* PhishX Card */}
-        <div
-          onClick={() => setActiveView('phishx')}
-          className="group cursor-pointer p-6 rounded-2xl bg-gradient-to-b from-[#0f141e] to-[#0c1017] border border-[#1e2638] hover:border-cyan-500/50 hover:shadow-xl hover:shadow-cyan-950/20 transition-all space-y-4"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-xl bg-cyan-950/80 border border-cyan-800/50 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
-              <Fish className="w-6 h-6" />
-            </div>
-            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-bold">
-              VECTOR 01
-            </span>
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors">
-              PhishX Detection Engine
-            </h3>
-            <p className="text-xs text-gray-400 mt-1">
-              Dual-layer LightGBM + 1D Character CNN. Extracts 36 lexical entropy attributes with calibrated probability.
-            </p>
-          </div>
-          <div className="pt-2 border-t border-[#1e2638] flex items-center justify-between text-xs text-cyan-400 font-mono">
-            <span>Launch PhishX Scanner</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </div>
-
-        {/* EMBER2024 Card */}
-        <div
-          onClick={() => setActiveView('ember')}
-          className="group cursor-pointer p-6 rounded-2xl bg-gradient-to-b from-[#0f141e] to-[#0c1017] border border-[#1e2638] hover:border-amber-500/50 hover:shadow-xl hover:shadow-amber-950/20 transition-all space-y-4"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-xl bg-amber-950/80 border border-amber-800/50 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
-              <FileCode className="w-6 h-6" />
-            </div>
-            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
-              VECTOR 02
-            </span>
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white group-hover:text-amber-400 transition-colors">
-              EMBER2024 Malware Sandbox
-            </h3>
-            <p className="text-xs text-gray-400 mt-1">
-              14 benchmark LightGBM classifiers. Extracts 2,568 dimensions of byte histograms, entropy, and PE headers.
-            </p>
-          </div>
-          <div className="pt-2 border-t border-[#1e2638] flex items-center justify-between text-xs text-amber-400 font-mono">
-            <span>Launch Malware Sandbox</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </div>
-
-        {/* DeepGuard Card */}
-        <div
-          onClick={() => setActiveView('deepguard')}
-          className="group cursor-pointer p-6 rounded-2xl bg-gradient-to-b from-[#0f141e] to-[#0c1017] border border-[#1e2638] hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-950/20 transition-all space-y-4"
-        >
-          <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-xl bg-purple-950/80 border border-purple-800/50 flex items-center justify-center text-purple-400 group-hover:scale-105 transition-transform">
-              <ScanFace className="w-6 h-6" />
-            </div>
-            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 font-bold">
-              VECTOR 03
-            </span>
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white group-hover:text-purple-400 transition-colors">
-              DeepGuard Synthetic Vision
-            </h3>
-            <p className="text-xs text-gray-400 mt-1">
-              MS-EffGCViT Vision Transformer. Inspects high-frequency Fourier spectra, face boundary blends, and audio harmonics.
-            </p>
-          </div>
-          <div className="pt-2 border-t border-[#1e2638] flex items-center justify-between text-xs text-purple-400 font-mono">
-            <span>Launch DeepFake Vision</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </div>
-        </div>
-      </div>
-
-      {/* Live Stream & Recent Incidents Split */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Live Attack Telemetry Stream */}
-        <div className="p-6 rounded-2xl bg-[#0f141e] border border-[#1e2638] space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-              </span>
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
-                Live Attack Ingestion Feed
+      {/* Row 2: Multi-Series Chart + Incident Queue */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <SpotlightCard className="lg:col-span-7 p-6 flex flex-col justify-between">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-base font-bold text-[#0f172a]">
+                Neutralized threats by engine
               </h2>
+              <p className="text-xs text-[#64748b] mt-0.5">
+                {range === '24h'
+                  ? 'Last 24 hours, hourly'
+                  : range === '7d'
+                  ? 'Last 7 days, daily'
+                  : 'Last 30 days, weekly'}
+              </p>
             </div>
-            <span className="text-[10px] text-gray-500 font-mono">Real-time Stream</span>
+
+            <div className="inline-flex items-center rounded-lg bg-[#f1f4fb] p-1 text-xs font-medium">
+              {['24h', '7d', '30d'].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRange(r)}
+                  className={`px-2.5 py-1 rounded-md transition-all ${
+                    range === r
+                      ? 'bg-white text-[#0f172a] shadow-sm font-semibold'
+                      : 'text-[#64748b] hover:text-[#0f172a]'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="space-y-2 font-mono text-xs max-h-[300px] overflow-y-auto">
-            {liveEvents.map((evt) => (
-              <div
-                key={evt.id}
-                className="p-2.5 rounded-lg bg-[#0a0d13] border border-[#1a2233] flex items-center justify-between"
-              >
-                <div className="flex items-center space-x-3 overflow-hidden">
-                  <span className="text-gray-500 text-[10px] shrink-0">{evt.time}</span>
-                  <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0 ${
-                      evt.vector === 'PHISHING'
-                        ? 'bg-cyan-500/20 text-cyan-400'
-                        : evt.vector === 'MALWARE'
-                        ? 'bg-amber-500/20 text-amber-400'
-                        : 'bg-purple-500/20 text-purple-400'
-                    }`}
-                  >
-                    {evt.vector}
-                  </span>
-                  <span className="text-gray-300 truncate text-[11px]">{evt.target}</span>
-                </div>
-                <div className="flex items-center space-x-2 shrink-0 pl-2">
-                  <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                      evt.severity === 'CRITICAL'
-                        ? 'bg-rose-500/20 text-rose-400'
-                        : evt.severity === 'HIGH'
-                        ? 'bg-amber-500/20 text-amber-400'
-                        : 'bg-emerald-500/20 text-emerald-400'
-                    }`}
-                  >
-                    {evt.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+          <div className="my-5">
+            <svg viewBox="0 0 500 205" className="w-full h-48 overflow-visible">
+              {[40, 85, 130, 175].map((y) => (
+                <line
+                  key={y}
+                  x1="16"
+                  x2="484"
+                  y1={y}
+                  y2={y}
+                  stroke="#eef2f8"
+                  strokeWidth="1"
+                />
+              ))}
 
-        {/* Priority Investigations */}
-        <div className="p-6 rounded-2xl bg-[#0f141e] border border-[#1e2638] space-y-4">
+              <polyline
+                fill="none"
+                stroke="#2454ff"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={buildPolyline(series.phishx)}
+              />
+              {series.phishx.map((v, i) => {
+                const x = 16 + (i / (series.phishx.length - 1)) * 468;
+                const y = 175 - (v / maxVal) * 145;
+                return <circle key={i} cx={x} cy={y} r="3" fill="#2454ff" />;
+              })}
+
+              <polyline
+                fill="none"
+                stroke="#7c3aed"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={buildPolyline(series.ember)}
+              />
+              {series.ember.map((v, i) => {
+                const x = 16 + (i / (series.ember.length - 1)) * 468;
+                const y = 175 - (v / maxVal) * 145;
+                return <circle key={i} cx={x} cy={y} r="2.8" fill="#7c3aed" />;
+              })}
+
+              <polyline
+                fill="none"
+                stroke="#0d9488"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                points={buildPolyline(series.deepguard)}
+              />
+              {series.deepguard.map((v, i) => {
+                const x = 16 + (i / (series.deepguard.length - 1)) * 468;
+                const y = 175 - (v / maxVal) * 145;
+                return <circle key={i} cx={x} cy={y} r="2.8" fill="#0d9488" />;
+              })}
+
+              {['00:00', '08:00', '16:00', '24:00'].map((lbl, idx) => (
+                <text
+                  key={lbl}
+                  x={16 + idx * 150}
+                  y="198"
+                  fill="#94a3b8"
+                  fontSize="10"
+                  fontFamily="JetBrains Mono, monospace"
+                >
+                  {range === '24h' ? lbl : series.labels[idx * 2] || lbl}
+                </text>
+              ))}
+            </svg>
+          </div>
+
+          <div className="flex items-center gap-5 text-xs text-[#475569] font-medium">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-3 h-0.5 bg-[#2454ff] inline-block" />
+              PhishX
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-3 h-0.5 bg-[#7c3aed] inline-block" />
+              EMBER2024
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-3 h-0.5 bg-[#0d9488] inline-block" />
+              DeepGuard
+            </span>
+          </div>
+        </SpotlightCard>
+
+        <SpotlightCard className="lg:col-span-5 p-6 flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center space-x-2">
-              <ShieldAlert className="w-4 h-4 text-rose-400" />
-              <span>Priority SecOps Investigations</span>
+            <h2 className="font-display text-base font-bold text-[#0f172a]">
+              Incident queue
             </h2>
-            <button
-              onClick={() => setActiveView('incidents')}
-              className="text-xs text-cyan-400 hover:text-cyan-300 font-mono flex items-center space-x-1"
-            >
-              <span>View All</span>
-              <ArrowRight className="w-3 h-3" />
-            </button>
+            <span className="px-2.5 py-0.5 rounded-full bg-[#fef2f2] text-[#dc2626] text-[11px] font-semibold">
+              {stats.criticalIncidents} critical
+            </span>
           </div>
 
           <div className="space-y-3">
-            {[
-              {
-                id: 'INC-1024',
-                title: 'Look-Alike Domain Credential Harvesting Campaign',
-                type: 'PHISHING',
-                risk: 92,
-                status: 'INVESTIGATING',
-                analyst: 'Sarah Jenkins'
-              },
-              {
-                id: 'INC-1025',
-                title: 'Polymorphic UPX Dropper in Invoice Archive',
-                type: 'MALWARE',
-                risk: 86,
-                status: 'CONTAINED',
-                analyst: 'David Miller'
-              },
-              {
-                id: 'INC-1026',
-                title: 'Synthetic Video Executive Impersonation ($250k Wire)',
-                type: 'DEEPFAKE',
-                risk: 91,
-                status: 'INVESTIGATING',
-                analyst: 'Sarah Jenkins'
-              }
-            ].map((inc) => (
-              <div
+            {incidents.map((inc) => (
+              <Link
                 key={inc.id}
-                onClick={() => {
-                  setSelectedIncidentId(inc.id);
-                  setActiveView('incidents');
-                }}
-                className="p-3.5 rounded-xl bg-[#0a0d13] border border-[#1a2233] hover:border-cyan-500/40 cursor-pointer transition-all flex items-center justify-between group"
+                href="/console/incidents"
+                className="block p-3.5 rounded-xl bg-[#fafbfe] hover:bg-[#f2f5fc] border border-[#e5e9f2] transition-colors"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-mono font-bold text-cyan-400">{inc.id}</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-800 text-gray-300">
-                      {inc.type}
-                    </span>
-                    <span
-                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-semibold ${
-                        inc.status === 'CONTAINED'
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : 'bg-rose-500/20 text-rose-400'
-                      }`}
-                    >
-                      {inc.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-200 group-hover:text-cyan-300 transition-colors font-medium">
-                    {inc.title}
-                  </p>
-                  <p className="text-[11px] text-gray-500 font-mono">
-                    Assigned: {inc.analyst}
-                  </p>
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="text-[#64748b]">
+                    {inc.id} · {inc.threatType}
+                  </span>
+                  <span
+                    className={`font-semibold ${
+                      inc.severity === 'Critical'
+                        ? 'text-[#dc2626]'
+                        : 'text-[#d97706]'
+                    }`}
+                  >
+                    {inc.severity}
+                  </span>
                 </div>
-                <div className="text-right shrink-0 pl-3">
-                  <div className="text-sm font-mono font-bold text-rose-400">
-                    {inc.risk}/100
-                  </div>
-                  <div className="text-[10px] text-gray-500 font-mono">Risk Score</div>
+                <div className="text-xs font-semibold text-[#0f172a] mt-1 leading-snug">
+                  {inc.title}
                 </div>
-              </div>
+                <div className="text-[11px] text-[#94a3b8] mt-1">{inc.ago}</div>
+              </Link>
             ))}
           </div>
+
+          <Link
+            href="/console/incidents"
+            className="text-xs font-semibold text-[#2454ff] hover:text-[#1a44e5] inline-flex items-center gap-1 pt-1"
+          >
+            <span>Open forensics</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </SpotlightCard>
+      </div>
+
+      {/* Row 3: Three Engines. One View. */}
+      <div className="space-y-4">
+        <h2 className="font-display text-2xl font-bold text-[#0f172a]">
+          Three engines. One view.
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <SpotlightCard className="p-6 flex flex-col justify-between space-y-5">
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#eef2ff] text-[#2454ff] flex items-center justify-center">
+                <Shield className="w-5 h-5" />
+              </div>
+              <h3 className="font-display text-base font-bold text-[#0f172a]">
+                PhishX Detection Engine
+              </h3>
+              <p className="text-xs text-[#64748b] leading-relaxed">
+                Dual-layer LightGBM and 1D character CNN. Reads 36 lexical
+                entropy attributes and returns a calibrated probability.
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#f1f4fb] text-[#475569] text-[11px] font-medium">
+                  36 lexical features
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#f1f4fb] text-[#475569] text-[11px] font-medium">
+                  Calibrated CV
+                </span>
+              </div>
+            </div>
+
+            <Link
+              href="/console/phishx"
+              className="text-xs font-semibold text-[#2454ff] hover:text-[#1a44e5] inline-flex items-center gap-1 pt-2"
+            >
+              <span>Launch PhishX scanner</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </SpotlightCard>
+
+          <SpotlightCard className="p-6 flex flex-col justify-between space-y-5">
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#f3e8ff] text-[#7c3aed] flex items-center justify-center">
+                <Cpu className="w-5 h-5" />
+              </div>
+              <h3 className="font-display text-base font-bold text-[#0f172a]">
+                EMBER2024 Malware Sandbox
+              </h3>
+              <p className="text-xs text-[#64748b] leading-relaxed">
+                14 benchmark LightGBM classifiers over 2,568 dimensions of byte
+                histograms, entropy and PE headers.
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#f1f4fb] text-[#475569] text-[11px] font-medium">
+                  2,568 dimensions
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#f1f4fb] text-[#475569] text-[11px] font-medium">
+                  14 classifiers
+                </span>
+              </div>
+            </div>
+
+            <Link
+              href="/console/ember"
+              className="text-xs font-semibold text-[#7c3aed] hover:text-[#6d28d9] inline-flex items-center gap-1 pt-2"
+            >
+              <span>Launch malware sandbox</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </SpotlightCard>
+
+          <SpotlightCard className="p-6 flex flex-col justify-between space-y-5">
+            <div className="space-y-3">
+              <div className="w-10 h-10 rounded-xl bg-[#ecfdf5] text-[#059669] flex items-center justify-center">
+                <ScanFace className="w-5 h-5" />
+              </div>
+              <h3 className="font-display text-base font-bold text-[#0f172a]">
+                DeepGuard Synthetic Vision
+              </h3>
+              <p className="text-xs text-[#64748b] leading-relaxed">
+                MS-EffGCViT vision transformer. Inspects Fourier spectra, face
+                boundary blends and audio harmonics.
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#f1f4fb] text-[#475569] text-[11px] font-medium">
+                  MS-EffGCViT
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#f1f4fb] text-[#475569] text-[11px] font-medium">
+                  Image, video, audio
+                </span>
+              </div>
+            </div>
+
+            <Link
+              href="/console/deepguard"
+              className="text-xs font-semibold text-[#059669] hover:text-[#047857] inline-flex items-center gap-1 pt-2"
+            >
+              <span>Launch DeepFake vision</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </SpotlightCard>
         </div>
       </div>
+
+      {/* Row 4: Recent Detections Table */}
+      <SpotlightCard className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-base font-bold text-[#0f172a]">
+            Recent detections
+          </h2>
+          <Link
+            href="/console/audit-logs"
+            className="text-xs font-semibold text-[#2454ff] hover:underline"
+          >
+            View full audit trail →
+          </Link>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-[#e5e9f2] text-[10px] font-mono uppercase tracking-wider text-[#94a3b8]">
+              <tr>
+                <th className="py-3 pr-4">Time</th>
+                <th className="py-3 pr-4">Engine</th>
+                <th className="py-3 pr-4">Artifact</th>
+                <th className="py-3 pr-4">Verdict</th>
+                <th className="py-3 text-right">Conf.</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#f1f4fb]">
+              {detections.map((row, idx) => (
+                <tr key={idx} className="hover:bg-[#fafbfe] transition-colors">
+                  <td className="py-3.5 pr-4 font-mono text-[#64748b]">
+                    {row.time}
+                  </td>
+                  <td
+                    className={`py-3.5 pr-4 font-semibold ${
+                      row.engine === 'PhishX'
+                        ? 'text-[#2454ff]'
+                        : row.engine === 'EMBER2024'
+                        ? 'text-[#7c3aed]'
+                        : 'text-[#059669]'
+                    }`}
+                  >
+                    {row.engine}
+                  </td>
+                  <td className="py-3.5 pr-4 font-mono text-[#0f172a]">
+                    {row.artifact}
+                  </td>
+                  <td className="py-3.5 pr-4">
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                        row.verdict === 'Benign'
+                          ? 'bg-[#eafaf1] text-[#15803d]'
+                          : row.verdict === 'Synthetic voice'
+                          ? 'bg-[#fff7ed] text-[#c2410c]'
+                          : 'bg-[#fef2f2] text-[#dc2626]'
+                      }`}
+                    >
+                      {row.verdict}
+                    </span>
+                  </td>
+                  <td className="py-3.5 text-right font-mono font-semibold text-[#0f172a]">
+                    {row.conf}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </SpotlightCard>
     </div>
   );
 }
-

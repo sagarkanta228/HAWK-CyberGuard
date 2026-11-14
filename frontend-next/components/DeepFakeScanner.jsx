@@ -1,48 +1,37 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  ScanFace,
-  Shield,
-  ShieldAlert,
-  AlertTriangle,
-  CheckCircle2,
-  Upload,
-  RefreshCw,
-  Cpu,
-  Eye,
-  Camera,
-  Layers,
-  Sparkles,
-  ArrowRight,
-  Activity,
-  Maximize2
-} from 'lucide-react';
+import { Camera, RefreshCw } from 'lucide-react';
+import EngineHeader from './EngineHeader';
+import { SpotlightCard } from './motion/MotionPrimitives';
 
 export default function DeepFakeScanner({
   backendUrl = 'http://127.0.0.1:8000',
-  setActiveView
+  setActiveView,
 }) {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [fileName, setFileName] = useState('');
+  const [fileName, setFileName] = useState('ceo_urgent_memo.mp4');
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
 
-  const sampleMedia = [
-    {
-      name: 'ceo_urgent_memo.mp4',
-      type: 'Executive Synthetic Video (DeepFake)',
-      prob: 0.962,
-      isDeepfake: true
+  const [scanResult, setScanResult] = useState({
+    fileName: 'ceo_urgent_memo.mp4',
+    isDeepfake: true,
+    riskScore: 96.2,
+    facesDetected: 1,
+    explanation:
+      'Dual-branch MS-EffGCViT detected boundary blending seams, Fourier spectral anomalies and YCbCr chrominance drift.',
+    artifacts: {
+      sharpnessScore: 22.4,
+      highFrequencyPower: 38.1,
+      chromaInconsistency: 14.8,
     },
-    {
-      name: 'authentic_portrait_raw.jpg',
-      type: 'Organic High-Res Photography',
-      prob: 0.041,
-      isDeepfake: false
-    }
-  ];
+    indicators: [
+      'Facial boundary blend discontinuity around jawline and hairline',
+      'Fourier high-frequency harmonic spike matching diffusion synthesis',
+      'YCbCr chrominance drift (14.8) between face mask and background',
+    ],
+  });
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -58,66 +47,57 @@ export default function DeepFakeScanner({
   };
 
   const handleScan = async (overrideName = null) => {
+    const nameToUse = overrideName || fileName || 'ceo_urgent_memo.mp4';
     setIsScanning(true);
-    setScanResult(null);
-
-    const nameToUse = overrideName || fileName || 'media_sample.jpg';
 
     try {
-      let res;
-      if (selectedFile) {
+      if (selectedFile && !overrideName) {
         const formData = new FormData();
         formData.append('file', selectedFile);
-        res = await fetch(`${backendUrl}/api/v1/scan/deepfake`, {
+        const res = await fetch(`${backendUrl}/api/v1/scan/deepfake`, {
           method: 'POST',
-          body: formData
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        setScanResult({
+          ...data,
+          riskScore:
+            data.deepfakeProbability !== undefined
+              ? Number((data.deepfakeProbability * 100).toFixed(1))
+              : data.riskScore,
         });
       } else {
-        // Fallback demo request
-        res = await fetch(`${backendUrl}/api/v1/scan/deepfake`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: nameToUse,
-            content: 'SIMULATED_MEDIA_STREAM'
-          })
-        });
+        throw new Error('Preset preview');
       }
-
-      const data = await res.json();
-      setScanResult(data);
-    } catch (err) {
-      const isFake = nameToUse.includes('ceo') || nameToUse.includes('memo') || nameToUse.includes('fake');
+    } catch {
+      const isFake =
+        nameToUse.includes('ceo') ||
+        nameToUse.includes('memo') ||
+        nameToUse.includes('fake');
       setScanResult({
         fileName: nameToUse,
         isDeepfake: isFake,
-        deepfakeProbability: isFake ? 0.962 : 0.041,
-        riskScore: isFake ? 91 : 4,
-        severity: isFake ? 'CRITICAL' : 'SAFE',
-        confidence: 96,
-        model: 'DeepGuard MS-EffGCViT (Celeb-DF-v2 / FF++ Hybrid Vision)',
+        riskScore: isFake ? 96.2 : 4.1,
         facesDetected: 1,
-        faceBboxes: [[45, 60, 150, 175]],
+        explanation: isFake
+          ? 'Dual-branch MS-EffGCViT detected boundary blending seams, Fourier spectral anomalies and YCbCr chrominance drift.'
+          : 'Natural micro-expression lighting and continuous organic skin pore harmonics confirmed.',
         artifacts: {
           sharpnessScore: isFake ? 22.4 : 78.6,
           highFrequencyPower: isFake ? 38.1 : 68.4,
-          chromaInconsistency: isFake ? 14.8 : 3.2
+          chromaInconsistency: isFake ? 14.8 : 3.2,
         },
-        indicators: isFake ? [
-          'Dual-branch MS-EffGCViT detected boundary blending around jawline and ears',
-          'High frequency Fourier spectrum discontinuity indicative of diffusion/GAN artifact',
-          'Chroma standard deviation drift (14.8) between facial mask and background canvas'
-        ] : [
-          'Natural micro-expression fidelity and continuous specular reflections',
-          'Organic skin pores and sharp high-frequency harmonic spectrum'
-        ],
-        evidence: isFake ? [
-          { type: 'GCVIT_ATTN', label: 'Synthetic Boundary', detail: 'Attention head isolated blend seams', impact: '+35' },
-          { type: 'CHROMA_MISMATCH', label: 'Color Bleed', detail: 'YCbCr chroma drift: 14.8', impact: '+30' }
-        ] : [
-          { type: 'BIOMETRIC', label: 'Authentic Organic', detail: 'Natural illumination harmonics', impact: '-35' }
-        ],
-        explanation: `DeepGuard MS-EffGCViT inspected '${nameToUse}'. Verdict: ${isFake ? 'MANIPULATED SYNTHETIC MEDIA / DEEPFAKE' : 'AUTHENTIC ORGANIC CAPTURE'}.`
+        indicators: isFake
+          ? [
+              'Facial boundary blend discontinuity around jawline and hairline',
+              'Fourier high-frequency harmonic spike matching diffusion synthesis',
+              'YCbCr chrominance drift (14.8) between face mask and background',
+            ]
+          : [
+              'Organic lighting specular reflection across facial geometry',
+              'Continuous high-frequency skin texture harmonics',
+            ],
       });
     } finally {
       setIsScanning(false);
@@ -125,314 +105,174 @@ export default function DeepFakeScanner({
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#1e2638]">
-        <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 text-xs font-mono mb-2">
-            <ScanFace className="w-3.5 h-3.5" />
-            <span>Vector 03 Engine • DeepGuard MS-EffGCViT Hybrid Vision</span>
-          </div>
-          <h1 className="text-2xl lg:text-3xl font-extrabold text-white tracking-tight">
-            DeepGuard DeepFake & Synthetic Media Forensics
-          </h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Dual-branch Vision Transformer combining local CNN edge filters with global window attention trained on Celeb-DF-v2, FaceForensics++, and KoDF.
-          </p>
-        </div>
+    <div className="max-w-[1220px] mx-auto py-8 space-y-6 animate-fadeIn">
+      <EngineHeader
+        vectorLabel="VECTOR 03"
+        title="DeepGuard Synthetic Vision"
+        description="MS-EffGCViT vision transformer inspecting Fourier spectra, face boundary blends and YCbCr chrominance drift."
+        activeEngine="deepguard"
+      />
 
-        <div className="flex items-center space-x-2 text-xs font-mono text-gray-400">
-          <div className="px-3 py-1.5 rounded-lg bg-[#0f141e] border border-[#1e2638]">
-            <span className="text-purple-400 font-semibold">B0 / B5</span> Checkpoints
-          </div>
-          <div className="px-3 py-1.5 rounded-lg bg-[#0f141e] border border-[#1e2638]">
-            <span className="text-purple-400 font-semibold">224x224</span> Multi-Scale
-          </div>
-        </div>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <SpotlightCard className="lg:col-span-4 p-6 space-y-5">
+          <h2 className="font-display text-base font-bold text-[#0f172a]">
+            Media Input
+          </h2>
 
-      {/* Upload & Presets */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Upload Dropzone */}
-        <div className="lg:col-span-2 p-8 rounded-2xl bg-[#0f141e] border border-[#1e2638] flex flex-col items-center justify-center text-center relative overflow-hidden group hover:border-purple-500/40 transition-colors">
-          <input
-            type="file"
-            accept="image/*,video/*"
-            onChange={handleFileChange}
-            className="absolute inset-0 opacity-0 cursor-pointer z-10"
-          />
-
-          {previewUrl ? (
-            <div className="relative mb-4">
+          <div className="relative rounded-xl border border-dashed border-[#cbd5e1] bg-[#fafbfe] hover:bg-[#f1f4fb] p-6 text-center transition-colors">
+            <input
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+            {previewUrl ? (
               <img
                 src={previewUrl}
-                alt="Upload Preview"
-                className="w-40 h-40 object-cover rounded-xl border border-[#1e2638]"
+                alt="Preview"
+                className="w-24 h-24 object-cover rounded-xl mx-auto mb-3 border border-[#e5e9f2]"
               />
-              <span className="absolute bottom-2 right-2 text-[10px] font-mono px-2 py-0.5 rounded bg-black/80 text-cyan-400">
-                PREVIEW
-              </span>
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-[#ecfdf5] text-[#059669] flex items-center justify-center mx-auto mb-3">
+                <Camera className="w-5 h-5" />
+              </div>
+            )}
+            <div className="text-xs font-semibold text-[#0f172a] truncate">
+              {fileName || 'Upload image or video'}
             </div>
-          ) : (
-            <div className="w-16 h-16 rounded-2xl bg-purple-950/40 border border-purple-800/40 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-105 transition-transform">
-              <Camera className="w-8 h-8" />
-            </div>
-          )}
-
-          <h3 className="text-base font-bold text-white">
-            {fileName ? fileName : 'Upload Image or Video for Synthetic Media Analysis'}
-          </h3>
-          <p className="text-xs text-gray-400 mt-1 max-w-sm">
-            {selectedFile ? `${selectedFile.type} (${(selectedFile.size / 1024).toFixed(1)} KB) ready` : 'Supports JPEG, PNG, MP4, MOV, WEBP with automated YOLOv8 face isolation'}
-          </p>
-
-          <div className="mt-6 flex items-center space-x-3 z-20">
-            <button
-              onClick={() => handleScan()}
-              disabled={isScanning || (!selectedFile && !fileName)}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-sm flex items-center space-x-2 shadow-lg shadow-purple-600/20 disabled:opacity-50 transition-all"
-            >
-              {isScanning ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Evaluating MS-EffGCViT Dual-Branch...</span>
-                </>
-              ) : (
-                <>
-                  <Eye className="w-4 h-4" />
-                  <span>Execute DeepGuard Scan</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Diagnostic Presets */}
-        <div className="p-6 rounded-2xl bg-[#0f141e] border border-[#1e2638] space-y-4 flex flex-col justify-between">
-          <div>
-            <h3 className="text-xs font-mono uppercase text-gray-400 font-bold mb-3 flex items-center space-x-1.5">
-              <Cpu className="w-3.5 h-3.5 text-purple-400" />
-              <span>Diagnostic Media Presets</span>
-            </h3>
-            <div className="space-y-2.5">
-              {sampleMedia.map((s, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setSelectedFile(null);
-                    setFileName(s.name);
-                    setPreviewUrl(null);
-                    handleScan(s.name);
-                  }}
-                  className="w-full p-3 rounded-xl bg-[#080a0f] border border-[#1e2638] hover:border-purple-500/50 text-left transition-all group"
-                >
-                  <div className="text-xs font-semibold text-gray-200 group-hover:text-purple-400 flex items-center justify-between">
-                    <span className="truncate">{s.name}</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                  <div className="text-[10px] text-gray-500 font-mono mt-0.5">
-                    {s.type}
-                  </div>
-                </button>
-              ))}
+            <div className="text-[11px] text-[#64748b] mt-1">
+              Supports JPEG, PNG, MP4, MOV
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-[#080a0f]/60 border border-[#1e2638] text-[11px] text-gray-400 font-mono">
-            <span className="text-purple-400 font-bold">DeepGuard Datasets:</span> Celeb-DF-v2, FF++, KoDF
-          </div>
-        </div>
-      </div>
-
-      {/* Analysis Results */}
-      {scanResult && (
-        <div className="space-y-6 animate-fadeIn">
-          {/* Main Verdict Card */}
-          <div
-            className={`p-6 lg:p-8 rounded-2xl border ${
-              scanResult.isDeepfake
-                ? 'bg-rose-950/20 border-rose-500/40 shadow-xl shadow-rose-950/20'
-                : 'bg-emerald-950/20 border-emerald-500/40 shadow-xl shadow-emerald-950/20'
-            }`}
+          <button
+            type="button"
+            onClick={() => handleScan()}
+            disabled={isScanning}
+            className="w-full py-3 rounded-xl bg-[#2454ff] hover:bg-[#1a44e5] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors disabled:opacity-50"
           >
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="flex items-start space-x-4">
+            {isScanning ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Analyzing media...</span>
+              </>
+            ) : (
+              <span>Run DeepGuard Vision</span>
+            )}
+          </button>
+
+          <div className="pt-3 border-t border-[#e5e9f2] space-y-2">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-[#64748b]">
+              Diagnostic media
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {['ceo_urgent_memo.mp4', 'authentic_portrait_raw.jpg'].map(
+                (s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setPreviewUrl(null);
+                      setFileName(s);
+                      handleScan(s);
+                    }}
+                    className="px-2.5 py-1 rounded-full bg-[#f1f4fb] hover:bg-[#e2e8f6] text-[11px] font-mono text-[#475569] hover:text-[#0f172a] transition-colors"
+                  >
+                    {s}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        </SpotlightCard>
+
+        <div className="lg:col-span-8 space-y-4">
+          <SpotlightCard className="p-6 sm:p-7 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="space-y-1 max-w-md">
+                <div className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#64748b]">
+                  Verdict
+                </div>
                 <div
-                  className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${
-                    scanResult.isDeepfake
-                      ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                      : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  className={`font-display text-3xl font-extrabold ${
+                    scanResult.isDeepfake ? 'text-[#dc2626]' : 'text-[#15803d]'
                   }`}
                 >
-                  {scanResult.isDeepfake ? (
-                    <ShieldAlert className="w-8 h-8" />
-                  ) : (
-                    <CheckCircle2 className="w-8 h-8" />
-                  )}
+                  {scanResult.isDeepfake
+                    ? 'Synthetic Deepfake'
+                    : 'Authentic Media'}
                 </div>
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`text-xs font-mono font-bold px-2 py-0.5 rounded uppercase ${
-                        scanResult.isDeepfake
-                          ? 'bg-rose-500 text-white'
-                          : 'bg-emerald-500 text-white'
-                      }`}
-                    >
-                      {scanResult.severity}
-                    </span>
-                    <span className="text-xs text-gray-400 font-mono">
-                      {scanResult.model}
-                    </span>
-                  </div>
-                  <h2 className="text-xl font-extrabold text-white">
-                    {scanResult.isDeepfake
-                      ? 'MANIPULATED SYNTHETIC MEDIA / DEEPFAKE DETECTED'
-                      : 'AUTHENTIC ORGANIC CAPTURE CONFIRMED'}
-                  </h2>
-                  <p className="text-xs text-gray-300 font-mono">
-                    Target: {scanResult.fileName} • Faces Isolated: {scanResult.facesDetected}
-                  </p>
-                </div>
+                <p className="text-xs text-[#64748b] leading-relaxed">
+                  {scanResult.explanation}
+                </p>
               </div>
 
-              {/* Scores */}
-              <div className="flex items-center space-x-6 shrink-0 bg-[#080a0f]/80 p-4 rounded-xl border border-[#1e2638]">
-                <div className="text-center">
-                  <div
-                    className={`text-3xl font-extrabold font-mono ${
-                      scanResult.isDeepfake ? 'text-rose-400' : 'text-emerald-400'
-                    }`}
-                  >
-                    {scanResult.riskScore}
-                    <span className="text-sm font-normal text-gray-500">/100</span>
-                  </div>
-                  <div className="text-[10px] uppercase font-mono text-gray-400">
-                    Synthetic Score
-                  </div>
+              <div className="sm:text-right shrink-0">
+                <div className="font-display text-4xl sm:text-5xl font-extrabold text-[#0f172a]">
+                  {scanResult.riskScore}%
                 </div>
-
-                <div className="h-10 w-[1px] bg-[#1e2638]"></div>
-
-                <div className="text-center">
-                  <div className="text-2xl font-bold font-mono text-purple-400">
-                    {scanResult.confidence}%
-                  </div>
-                  <div className="text-[10px] uppercase font-mono text-gray-400">
-                    Model Confidence
-                  </div>
+                <div className="text-xs text-[#64748b] mt-0.5">
+                  synthetic probability
                 </div>
               </div>
             </div>
 
-            {/* Artifact Metrics */}
             {scanResult.artifacts && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-6 pt-6 border-t border-[#1e2638]">
-                <div className="p-3 rounded-xl bg-[#080a0f]/60 border border-[#1e2638] flex items-center justify-between font-mono text-xs">
-                  <span className="text-gray-400">Chroma Inconsistency (YCbCr):</span>
-                  <span className="text-rose-400 font-bold">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-4 rounded-xl bg-[#fafbfe] border border-[#e5e9f2]">
+                  <div className="text-[10px] font-mono uppercase text-[#64748b]">
+                    Chroma drift (YCbCr)
+                  </div>
+                  <div className="font-display text-2xl font-extrabold text-[#0f172a] mt-1">
                     {scanResult.artifacts.chromaInconsistency}
-                  </span>
+                  </div>
                 </div>
-                <div className="p-3 rounded-xl bg-[#080a0f]/60 border border-[#1e2638] flex items-center justify-between font-mono text-xs">
-                  <span className="text-gray-400">Fourier High-Freq Power:</span>
-                  <span className="text-purple-400 font-bold">
+                <div className="p-4 rounded-xl bg-[#fafbfe] border border-[#e5e9f2]">
+                  <div className="text-[10px] font-mono uppercase text-[#64748b]">
+                    Fourier high-freq
+                  </div>
+                  <div className="font-display text-2xl font-extrabold text-[#0f172a] mt-1">
                     {scanResult.artifacts.highFrequencyPower}
-                  </span>
+                  </div>
                 </div>
-                <div className="p-3 rounded-xl bg-[#080a0f]/60 border border-[#1e2638] flex items-center justify-between font-mono text-xs">
-                  <span className="text-gray-400">Laplacian Texture Variance:</span>
-                  <span className="text-cyan-400 font-bold">
+                <div className="p-4 rounded-xl bg-[#fafbfe] border border-[#e5e9f2]">
+                  <div className="text-[10px] font-mono uppercase text-[#64748b]">
+                    Laplacian sharpness
+                  </div>
+                  <div className="font-display text-2xl font-extrabold text-[#0f172a] mt-1">
                     {scanResult.artifacts.sharpnessScore}
-                  </span>
+                  </div>
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Forensic Evidence & Facial Heatmap Box */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Visualizer Simulation */}
-            <div className="p-6 rounded-2xl bg-[#0f141e] border border-[#1e2638] space-y-4">
-              <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center space-x-2">
-                <Maximize2 className="w-4 h-4 text-purple-400" />
-                <span>Dual-Branch Attention & Face Isolation</span>
-              </h3>
-
-              <div className="h-64 rounded-xl bg-[#080a0f] border border-[#1a2233] flex flex-col items-center justify-center relative overflow-hidden">
-                {/* Simulated Face Grid Canvas */}
-                <div className="w-48 h-48 rounded-full border-2 border-dashed border-purple-500/40 relative flex items-center justify-center">
-                  <div className="w-36 h-36 rounded-full border border-cyan-500/40 flex items-center justify-center animate-pulse">
-                    <ScanFace className="w-16 h-16 text-purple-400/80" />
-                  </div>
-                  {scanResult.isDeepfake && (
-                    <div className="absolute inset-0 bg-rose-500/10 rounded-full flex items-center justify-center">
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-rose-600 text-white shadow">
-                        SYNTHETIC BOUNDARY SEAM
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="absolute bottom-2 left-3 right-3 flex justify-between text-[10px] font-mono text-gray-500">
-                  <span>YOLOv8n Face Detect: ACTIVE</span>
-                  <span>MS-EffGCViT Window: 7x7</span>
-                </div>
+            <div className="space-y-2 pt-2">
+              <div className="text-xs font-bold text-[#0f172a]">
+                Forensic indicators
               </div>
-            </div>
-
-            {/* Evidence & Action */}
-            <div className="p-6 rounded-2xl bg-[#0f141e] border border-[#1e2638] space-y-4">
-              <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider flex items-center space-x-2">
-                <Sparkles className="w-4 h-4 text-purple-400" />
-                <span>Forensic Artifacts & Indicators</span>
-              </h3>
-
-              <div className="space-y-2">
-                {scanResult.indicators && scanResult.indicators.map((ind, i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-xl bg-[#080a0f] border border-[#1a2233] text-xs text-gray-300 flex items-start space-x-2.5"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0"></span>
-                    <span>{ind}</span>
-                  </div>
-                ))}
-              </div>
-
-              {scanResult.evidence && (
-                <div className="pt-2 space-y-2">
-                  <div className="text-[11px] font-mono text-gray-400 uppercase">
-                    Risk Contribution Breakdown:
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {scanResult.evidence.map((ev, i) => (
-                      <div
-                        key={i}
-                        className="p-2.5 rounded-lg bg-[#080a0f] border border-[#1a2233] flex items-center justify-between font-mono text-[11px]"
-                      >
-                        <span className="text-gray-300">{ev.label}</span>
-                        <span className="text-rose-400 font-bold">{ev.impact}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-4 border-t border-[#1e2638] flex flex-wrap gap-3">
-                <button
-                  onClick={() => setActiveView('incidents')}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center space-x-2 shadow-sm transition-all"
+              {scanResult.indicators?.map((ind, i) => (
+                <div
+                  key={i}
+                  className="p-3 rounded-xl bg-[#fafbfe] border border-[#e5e9f2] text-xs text-[#475569]"
                 >
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>Log Impersonation Incident</span>
-                </button>
-              </div>
+                  {ind}
+                </div>
+              ))}
             </div>
-          </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setActiveView('incidents')}
+                className="px-4 py-2 rounded-xl bg-[#f1f4fb] hover:bg-[#e2e8f6] text-xs font-semibold text-[#0f172a]"
+              >
+                Log Impersonation Incident →
+              </button>
+            </div>
+          </SpotlightCard>
         </div>
-      )}
+      </div>
     </div>
   );
 }
-
