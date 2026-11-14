@@ -1,177 +1,234 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
-  LayoutDashboard,
-  Fish,
-  FileCode,
-  ScanFace,
-  ShieldAlert,
-  Globe,
   Bot,
   ClipboardList,
-  Activity,
-  Layers,
-  Cpu
+  Cpu,
+  FileCode,
+  Fish,
+  Globe,
+  LayoutDashboard,
+  ScanFace,
+  ShieldAlert,
 } from 'lucide-react';
 
-export default function Sidebar({
-  currentRole,
-  activeView,
-  setActiveView,
-  onLogout
-}) {
-  const navItems = [
-    {
-      id: 'command-center',
-      label: 'Command Center',
-      icon: LayoutDashboard,
-      badge: 'LIVE',
-      badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-    },
-    {
-      id: 'phishx',
-      label: 'PhishX Shield',
-      icon: Fish,
-      sublabel: 'LightGBM + CharCNN',
-      badge: 'VECTOR 1',
-      badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
-    },
-    {
-      id: 'ember',
-      label: 'EMBER2024 Sandbox',
-      icon: FileCode,
-      sublabel: '14 LGBM Classifiers',
-      badge: 'VECTOR 2',
-      badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-    },
-    {
-      id: 'deepguard',
-      label: 'DeepGuard Vision',
-      icon: ScanFace,
-      sublabel: 'MS-EffGCViT Hybrid',
-      badge: 'VECTOR 3',
-      badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-    },
-    {
-      id: 'incidents',
-      label: 'Incident Forensics',
-      icon: ShieldAlert,
-      badge: '3 QUEUED',
-      badgeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-    },
-    {
-      id: 'threat-intel',
-      label: 'Threat Intelligence',
-      icon: Globe,
-      sublabel: 'IOC Feed & Att&ck',
-      badge: '6 ACTIVE',
-      badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-    },
-    {
-      id: 'copilot',
-      label: 'AI Security Copilot',
-      icon: Bot,
-      sublabel: 'Autonomous SOC Lead',
-      badge: 'AI',
-      badgeColor: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-    },
-    {
-      id: 'audit-logs',
-      label: 'Audit Trail & Telemetry',
-      icon: ClipboardList,
-      sublabel: 'Immutable Audit Log'
-    }
-  ];
+export const CONSOLE_NAV_GROUPS = [
+  {
+    title: 'Overview',
+    items: [
+      {
+        id: 'command-center',
+        href: '/console',
+        label: 'Command Center',
+        icon: LayoutDashboard,
+        badge: 'LIVE',
+      },
+    ],
+  },
+  {
+    title: 'AI Detection Vectors',
+    items: [
+      {
+        id: 'phishx',
+        href: '/console/phishx',
+        label: 'PhishX Shield',
+        sublabel: 'LightGBM + CharCNN',
+        icon: Fish,
+        badge: '01',
+      },
+      {
+        id: 'ember',
+        href: '/console/ember',
+        label: 'EMBER2024 Sandbox',
+        sublabel: '14 LGBM Classifiers',
+        icon: FileCode,
+        badge: '02',
+      },
+      {
+        id: 'deepguard',
+        href: '/console/deepguard',
+        label: 'DeepGuard Vision',
+        sublabel: 'MS-EffGCViT ViT',
+        icon: ScanFace,
+        badge: '03',
+      },
+    ],
+  },
+  {
+    title: 'SecOps & Forensics',
+    items: [
+      {
+        id: 'incidents',
+        href: '/console/incidents',
+        label: 'Incident Forensics',
+        sublabel: 'MITRE ATT&CK',
+        icon: ShieldAlert,
+        badge: '3',
+        badgeAlert: true,
+      },
+      {
+        id: 'threat-intel',
+        href: '/console/threat-intel',
+        label: 'Threat Intelligence',
+        sublabel: 'IOC Database',
+        icon: Globe,
+      },
+      {
+        id: 'copilot',
+        href: '/console/copilot',
+        label: 'AI Security Copilot',
+        sublabel: 'SOC Assistant',
+        icon: Bot,
+      },
+      {
+        id: 'audit-logs',
+        href: '/console/audit-logs',
+        label: 'Audit Trail',
+        sublabel: 'Immutable Telemetry',
+        icon: ClipboardList,
+      },
+    ],
+  },
+];
 
+export default function Sidebar({ activeView }) {
   return (
-    <aside className="fixed left-0 top-16 bottom-0 w-64 bg-[#080a0f] border-r border-[#1e2638] flex flex-col justify-between p-4 z-40 overflow-y-auto">
-      <div className="space-y-6">
-        {/* Section title */}
-        <div>
-          <p className="px-3 text-[10px] font-mono uppercase tracking-wider text-gray-500 font-bold mb-2">
-            Defense Matrix
-          </p>
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeView === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveView(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left transition-all group ${
-                    isActive
-                      ? 'bg-gradient-to-r from-cyan-950/60 to-blue-950/30 text-white border border-cyan-500/30 shadow-lg shadow-cyan-950/30 font-medium'
-                      : 'text-gray-400 hover:text-gray-100 hover:bg-[#0f141e] border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className={`p-1.5 rounded-lg transition-colors ${
+    <>
+      {/* Desktop Architectural Rail */}
+      <aside className="fixed left-0 top-16 bottom-0 w-64 bg-[#0d0f13]/95 backdrop-blur-xl border-r border-white/[0.08] hidden lg:flex flex-col justify-between p-4 z-40 overflow-y-auto">
+        <div className="space-y-6">
+          {CONSOLE_NAV_GROUPS.map((group) => (
+            <div key={group.title}>
+              <p className="px-3 text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500 font-semibold mb-2">
+                {group.title}
+              </p>
+              <nav className="space-y-1">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeView === item.id;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className={`relative w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-colors group ${
                         isActive
-                          ? 'bg-cyan-500 text-black'
-                          : 'bg-[#141b2b] text-gray-400 group-hover:text-cyan-400 group-hover:bg-[#1c263c]'
+                          ? 'text-white font-medium'
+                          : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold leading-tight">{item.label}</div>
-                      {item.sublabel && (
-                        <div className="text-[10px] text-gray-500 font-mono leading-none mt-0.5">
-                          {item.sublabel}
-                        </div>
+                      {isActive && (
+                        <motion.span
+                          layoutId="sidebar-active-pill"
+                          transition={{ type: 'spring', stiffness: 360, damping: 32 }}
+                          className="absolute inset-0 rounded-lg bg-gradient-to-r from-white/[0.1] via-white/[0.05] to-transparent border border-white/20"
+                        />
                       )}
-                    </div>
-                  </div>
-                  {item.badge && (
-                    <span
-                      className={`text-[9px] font-mono px-1.5 py-0.5 rounded border uppercase font-semibold ${item.badgeColor}`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
 
-      {/* Engine Status Hardware Telemetry Box */}
-      <div className="p-3.5 rounded-xl bg-gradient-to-b from-[#0f141e] to-[#0c0f17] border border-[#1e2638] space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-1.5 text-xs text-gray-300 font-semibold">
-            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-            <span>AI Node Specs</span>
-          </div>
-          <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
-            100% ONLINE
-          </span>
+                      <div className="relative z-10 flex items-center gap-3 min-w-0">
+                        <div
+                          className={`p-1.5 rounded-[5px] transition-all duration-200 shrink-0 ${
+                            isActive
+                              ? 'bg-slate-200 text-[#0d0f13]'
+                              : 'bg-[#14171f] text-slate-400 border border-white/[0.08] group-hover:text-white group-hover:border-white/20'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-medium leading-tight truncate">
+                            {item.label}
+                          </div>
+                          {item.sublabel && (
+                            <div className="text-[10px] text-slate-500 font-mono leading-none mt-1 truncate">
+                              {item.sublabel}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {item.badge && (
+                        <span
+                          className={`relative z-10 text-[9px] font-mono px-1.5 py-0.5 rounded-[4px] border uppercase font-semibold shrink-0 ${
+                            item.badgeAlert
+                              ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                              : isActive
+                              ? 'bg-white/15 text-white border-white/25'
+                              : 'bg-white/[0.04] text-slate-400 border-white/[0.08]'
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          ))}
         </div>
 
-        <div className="space-y-1.5 text-[11px] font-mono text-gray-400">
-          <div className="flex justify-between">
-            <span>PhishX:</span>
-            <span className="text-cyan-400">Calibrated CV</span>
+        {/* Bottom Hardware Spec Box matching Main Dashboard Matrix */}
+        <div className="p-3.5 rounded-xl bg-[#14171f] bg-plus-matrix border border-white/[0.08] space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-[11px] font-display uppercase tracking-wider text-white font-semibold">
+              <Cpu className="w-3.5 h-3.5 text-slate-300" />
+              <span>AI Node Cluster</span>
+            </div>
+            <span className="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+              ONLINE
+            </span>
           </div>
-          <div className="flex justify-between">
-            <span>EMBER2024:</span>
-            <span className="text-amber-400">14 Boosters</span>
-          </div>
-          <div className="flex justify-between">
-            <span>DeepGuard:</span>
-            <span className="text-purple-400">GCViT B0/B5</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Database:</span>
-            <span className="text-emerald-400">Neon v18.6</span>
+
+          <div className="space-y-1 text-[10px] font-mono text-slate-400">
+            <div className="flex justify-between">
+              <span>PhishX</span>
+              <span className="text-slate-200">LGBM + CharCNN</span>
+            </div>
+            <div className="flex justify-between">
+              <span>EMBER2024</span>
+              <span className="text-slate-200">14 Boosters</span>
+            </div>
+            <div className="flex justify-between">
+              <span>DeepGuard</span>
+              <span className="text-slate-200">MS-EffGCViT</span>
+            </div>
+            <div className="flex justify-between">
+              <span>PostgreSQL</span>
+              <span className="text-slate-200">Neon v18.6</span>
+            </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0d0f13]/95 backdrop-blur-xl border-t border-white/[0.08] z-50 px-2 flex items-center justify-around">
+        {[
+          { id: 'command-center', href: '/console', label: 'Center', icon: LayoutDashboard },
+          { id: 'phishx', href: '/console/phishx', label: 'PhishX', icon: Fish },
+          { id: 'ember', href: '/console/ember', label: 'EMBER', icon: FileCode },
+          { id: 'deepguard', href: '/console/deepguard', label: 'DeepFake', icon: ScanFace },
+          { id: 'incidents', href: '/console/incidents', label: 'SOC', icon: ShieldAlert },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = activeView === item.id;
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={`flex flex-col items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-mono transition-colors ${
+                isActive ? 'text-white' : 'text-slate-500 hover:text-slate-200'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    </>
   );
 }
-

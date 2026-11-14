@@ -1,8 +1,6 @@
-'use client';
-
 import React from 'react';
-import Page from '../page';
+import ConsoleShell from '../../components/ConsoleShell';
 
 export default function AdminPage() {
-  return <Page />;
+  return <ConsoleShell initialView="command-center" />;
 }

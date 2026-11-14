@@ -8,15 +8,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: '#080a0f',
-        card: '#0f141e',
-        border: '#1e2638',
+        background: '#f5f7fc',
+        card: '#ffffff',
+        border: '#e5e9f2',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
-        mono: ['Fira Code', 'monospace'],
-      }
+        display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
     },
   },
   plugins: [],
-}
+};

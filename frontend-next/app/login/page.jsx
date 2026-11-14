@@ -11,10 +11,8 @@ export default function LoginPage() {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('hawk_user', JSON.stringify(operatorData));
     }
-    router.push('/');
+    router.push('/console');
   };
 
-  return (
-    <LoginPortal onLoginSuccess={handleLoginSuccess} />
-  );
+  return <LoginPortal mode="login" onLoginSuccess={handleLoginSuccess} />;
 }

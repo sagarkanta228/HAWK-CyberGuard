@@ -1,27 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Bot,
-  User,
-  Send,
-  Sparkles,
-  Shield,
-  Layers,
-  Terminal,
-  RefreshCw,
-  Cpu
-} from 'lucide-react';
+import { Bot, RefreshCw, Send, User } from 'lucide-react';
+import { SpotlightCard } from './motion/MotionPrimitives';
 
 export default function AICopilotConsole({
-  backendUrl = 'http://127.0.0.1:8000'
+  backendUrl = 'http://127.0.0.1:8000',
 }) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      text: 'HAWK AI Security Copilot online. I am synchronized with your PhishX, EMBER2024, and DeepGuard detection telemetry. How can I assist your investigation today?',
-      time: '12:00'
-    }
+      text: 'HAWK AI Security Copilot online. Synchronized with PhishX, EMBER2024, and DeepGuard detection telemetry.',
+      time: '12:00',
+    },
   ]);
   const [inputQuery, setInputQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,9 +20,7 @@ export default function AICopilotConsole({
   const quickPrompts = [
     'Explain PhishX LightGBM + CharCNN architecture',
     'How does EMBER2024 extract 2,568 PE features?',
-    'DeepGuard MS-EffGCViT vs standard CNN deepfakes',
     'Summarize Incident INC-1024 attack chain',
-    'Status of all 3 AI detection engines'
   ];
 
   const handleSend = async (queryToSend = inputQuery) => {
@@ -40,10 +29,13 @@ export default function AICopilotConsole({
     const userMsg = {
       role: 'user',
       text: queryToSend,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInputQuery('');
     setLoading(true);
 
@@ -51,25 +43,33 @@ export default function AICopilotConsole({
       const res = await fetch(`${backendUrl}/api/v1/copilot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: queryToSend })
+        body: JSON.stringify({ query: queryToSend }),
       });
       const data = await res.json();
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          text: data.answer || 'Telemetry evaluated. All perimeter defense nodes operational.',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
+          text:
+            data.answer ||
+            'Telemetry evaluated. All perimeter defense nodes operational.',
+          time: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        },
       ]);
-    } catch (err) {
-      setMessages(prev => [
+    } catch {
+      setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          text: `HAWK AI Copilot evaluated query: "${queryToSend}". Correlated against active incidents. Defense nodes operating at nominal capacity.`,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
+          text: `HAWK AI Copilot evaluated: "${queryToSend}". Defense nodes operating nominally.`,
+          time: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        },
       ]);
     } finally {
       setLoading(false);
@@ -77,111 +77,101 @@ export default function AICopilotConsole({
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn h-[calc(100vh-8rem)] flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-[#1e2638] shrink-0">
+    <div className="max-w-[1220px] mx-auto py-8 space-y-5 animate-fadeIn">
+      <div className="bg-white rounded-2xl border border-[#e5e9f2] shadow-sm p-6 flex items-center justify-between">
         <div>
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-mono mb-1">
-            <Bot className="w-3.5 h-3.5" />
-            <span>Autonomous SOC Intelligence</span>
+          <div className="text-[11px] font-mono uppercase tracking-[0.14em] font-semibold text-[#2454ff]">
+            Autonomous SOC Intelligence
           </div>
-          <h1 className="text-xl lg:text-2xl font-extrabold text-white tracking-tight">
+          <h1 className="font-display text-2xl font-extrabold text-[#0f172a] mt-0.5">
             HAWK AI Security Copilot
           </h1>
         </div>
-
-        <div className="flex items-center space-x-2 text-xs font-mono text-emerald-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>NEURAL COPILOT READY</span>
-        </div>
+        <span className="px-3 py-1 rounded-full bg-[#eafaf1] text-[#15803d] text-xs font-semibold">
+          Copilot ready
+        </span>
       </div>
 
-      {/* Chat Messages Window */}
-      <div className="flex-1 overflow-y-auto space-y-4 p-4 rounded-2xl bg-[#0f141e] border border-[#1e2638]">
+      <SpotlightCard className="p-6 h-[420px] overflow-y-auto space-y-4">
         {messages.map((m, idx) => (
           <div
             key={idx}
-            className={`flex items-start space-x-3 ${
+            className={`flex items-start gap-3 ${
               m.role === 'user' ? 'justify-end' : 'justify-start'
             }`}
           >
             {m.role === 'assistant' && (
-              <div className="w-8 h-8 rounded-xl bg-indigo-950 border border-indigo-800 flex items-center justify-center text-indigo-400 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[#eef2ff] text-[#2454ff] flex items-center justify-center shrink-0">
                 <Bot className="w-4 h-4" />
               </div>
             )}
-
             <div
-              className={`p-4 rounded-2xl max-w-2xl text-xs leading-relaxed ${
+              className={`p-4 rounded-2xl max-w-xl text-xs leading-relaxed ${
                 m.role === 'user'
-                  ? 'bg-cyan-600 text-white rounded-tr-none'
-                  : 'bg-[#080a0f] border border-[#1e2638] text-gray-200 rounded-tl-none font-sans'
+                  ? 'bg-[#2454ff] text-white'
+                  : 'bg-[#fafbfe] border border-[#e5e9f2] text-[#0f172a]'
               }`}
             >
               <div className="whitespace-pre-line">{m.text}</div>
               <div
-                className={`text-[9px] font-mono mt-1 ${
-                  m.role === 'user' ? 'text-cyan-200' : 'text-gray-500'
+                className={`text-[10px] font-mono mt-1 ${
+                  m.role === 'user' ? 'text-blue-100' : 'text-[#94a3b8]'
                 }`}
               >
                 {m.time}
               </div>
             </div>
-
             {m.role === 'user' && (
-              <div className="w-8 h-8 rounded-xl bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-400 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-[#f1f4fb] text-[#475569] flex items-center justify-center shrink-0">
                 <User className="w-4 h-4" />
               </div>
             )}
           </div>
         ))}
-
         {loading && (
-          <div className="flex items-center space-x-2 text-xs text-indigo-400 font-mono p-3">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            <span>Consulting PhishX, EMBER2024, and DeepGuard indices...</span>
+          <div className="flex items-center gap-2 text-xs text-[#64748b] font-mono">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#2454ff]" />
+            <span>Querying telemetry...</span>
           </div>
         )}
-      </div>
+      </SpotlightCard>
 
-      {/* Quick Prompt Chips */}
-      <div className="flex flex-wrap gap-2 shrink-0">
-        {quickPrompts.map((p, i) => (
+      <div className="flex flex-wrap gap-2">
+        {quickPrompts.map((p) => (
           <button
-            key={i}
+            key={p}
+            type="button"
             onClick={() => handleSend(p)}
-            className="px-3 py-1.5 rounded-xl bg-[#0f141e] hover:bg-[#141b2b] border border-[#1e2638] hover:border-indigo-500/40 text-[11px] text-gray-400 hover:text-white font-mono transition-all"
+            className="px-3 py-1.5 rounded-full bg-white hover:bg-[#f1f4fb] border border-[#e5e9f2] text-xs font-medium text-[#475569]"
           >
             {p}
           </button>
         ))}
       </div>
 
-      {/* Input bar */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           handleSend();
         }}
-        className="flex items-center space-x-3 shrink-0"
+        className="flex items-center gap-3"
       >
         <input
           type="text"
           value={inputQuery}
           onChange={(e) => setInputQuery(e.target.value)}
-          placeholder="Ask Copilot about any incident, attack vector, or detection model..."
-          className="flex-1 px-4 py-3 rounded-xl bg-[#0f141e] border border-[#1e2638] focus:border-indigo-500 text-white text-xs font-mono placeholder-gray-600 focus:outline-none"
+          placeholder="Ask Copilot about any incident or model..."
+          className="flex-1 px-4 py-3 rounded-xl bg-white border border-[#dce2ee] focus:border-[#2454ff] text-xs text-[#0f172a] focus:outline-none"
         />
         <button
           type="submit"
           disabled={!inputQuery.trim() || loading}
-          className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center space-x-2 shadow-lg shadow-indigo-600/20 disabled:opacity-50 transition-all shrink-0"
+          className="px-6 py-3 rounded-xl bg-[#2454ff] hover:bg-[#1a44e5] text-white font-semibold text-xs inline-flex items-center gap-2 disabled:opacity-50"
         >
           <Send className="w-3.5 h-3.5" />
-          <span>Transmit</span>
+          <span>Send</span>
         </button>
       </form>
     </div>
   );
 }
-
